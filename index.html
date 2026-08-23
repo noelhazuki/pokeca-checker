@@ -1,0 +1,2632 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:image" content="https://placehold.co/1200x630/0d9488/ffffff?text=%E3%83%9D%E3%82%B1%E3%82%AB%E6%8A%BD%E9%81%B8%E3%83%81%E3%82%A7%E3%83%83%E3%82%AB%E3%83%BC">
+<title>ポケカ抽選チェッカー</title>
+<style>
+  :root{
+    --bg:#f7f8fa;
+    --card:#ffffff;
+    --border:#e5e7eb;
+    --text:#111827;
+    --sub:#6b7280;
+    --link:#2563eb;
+    --danger:#ef4444;
+    --accent-new:#16a34a;
+    --accent-pending:#4a90e2;
+    --accent-review:#c97a2e;
+    --accent-other:#9b6ede;
+    --teal:#0f9c8f;
+    --teal-dark:#0b7d73;
+    --orange:#f2994a;
+    --red:#eb5757;
+    --purple:#9b6ede;
+    --blue:#4a90e2;
+    --green:#3aa76d;
+    --pink-bg:#fdecec;
+    --pink-text:#e05656;
+    --green-bg:#e8f6ef;
+    --green-text:#2f9e6e;
+    --purple-bg:#f3ebfc;
+    --blue-bg:#eaf2fd;
+    --orange-bg:#fdf1e4;
+    --orange-text:#c97a2e;
+    --gray-bg:#eef0f3;
+    --gray-text:#6b7280;
+    --gold:#c9962c;
+    --gold-bg:#fbf3d9;
+    --gold-text:#b8860b;
+    --radius:12px;
+    --shadow:0 1px 2px rgba(20,20,30,0.04);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    justify-content:center;
+  }
+  .phone{
+    width:100%;
+    max-width:430px;
+    min-height:100vh;
+    background:var(--bg);
+    position:relative;
+    padding-bottom:28px;
+  }
+
+  /* ▼ ヘッダー */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 18px 4px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .pokeball{
+    width:30px;height:30px;border-radius:50%;
+    background:linear-gradient(180deg,#ee3b3b 0 50%, #fff 50% 100%);
+    border:2px solid #23262f;
+    position:relative;
+    flex-shrink:0;
+  }
+  .pokeball::after{
+    content:"";
+    position:absolute;top:50%;left:50%;
+    width:10px;height:10px;border-radius:50%;
+    background:#fff;border:2px solid #23262f;
+    transform:translate(-50%,-50%);
+  }
+  .brand h1{font-size:17px;margin:0;font-weight:700;}
+  .updated{font-size:11px;color:var(--sub);margin-top:2px;display:flex;align-items:center;gap:5px;}
+  .refresh-inline{
+    background:none;border:none;padding:2px;cursor:pointer;
+    color:var(--teal);display:flex;align-items:center;
+  }
+  .refresh-inline svg{width:13px;height:13px;transition:transform .5s ease;}
+  .header-actions{display:flex;align-items:center;gap:0;}
+  .icon-btn{
+    background:#f4f5f7;border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--teal);
+    width:34px;height:34px;border-radius:10px;
+    padding:0;
+  }
+  .icon-btn svg{width:19px;height:19px;}
+  .icon-btn.spin svg{transition:transform .5s ease;}
+  /* ▲ ヘッダー */
+
+  /* ▼ ステータスサマリー（2026-08-24 UI再設計：未応募/応募済み/日程ありの3項目アイコンカードに変更） */
+  .stat-cards{display:flex;gap:10px;padding:14px 18px 4px;}
+  .stat-card{
+    flex:1;min-width:0;background:var(--card);border-radius:var(--radius);
+    padding:10px 6px;text-align:center;border:1px solid var(--border);
+  }
+  .stat-icon{display:flex;justify-content:center;margin-bottom:4px;color:var(--sub);}
+  .stat-icon svg{width:16px;height:16px;}
+  .stat-label{font-size:11px;color:var(--sub);margin-bottom:2px;}
+  .stat-value{font-size:19px;font-weight:800;color:var(--text);}
+  /* ▲ ステータスサマリー */
+
+  /* ▼ セクション共通 */
+  .section{padding:20px 18px 4px;}
+  .section-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .section-head h2{font-size:14px;margin:0;font-weight:700;}
+  .section-head .sub{font-size:11px;color:var(--sub);font-weight:400;margin-left:6px;}
+  .link-all{font-size:12px;color:var(--teal);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:2px;background:none;border:none;cursor:pointer;}
+  /* ▲ セクション共通 */
+
+  /* ▼ 直近の予定リスト */
+  .upcoming-list{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .upcoming-item{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+    background:none;width:100%;text-align:left;border:0;
+    border-bottom:1px solid var(--border);
+    font-family:inherit;color:inherit;
+  }
+  .upcoming-item:last-child{border-bottom:none;}
+  .upcoming-item:active{background:#f7faf9;}
+  .type-badge{
+    width:34px;height:34px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:700;flex-shrink:0;
+    text-align:center;line-height:1.1;
+  }
+  .type-badge.deadline{background:var(--pink-bg);color:var(--pink-text);}
+  .type-badge.announce{background:#f3ebfc;color:var(--purple);}
+  .type-badge.sale{background:#eaf2fd;color:var(--blue);}
+  .type-badge.start{background:var(--green-bg);color:var(--green-text);}
+  .u-date{font-size:11px;color:var(--sub);width:52px;flex-shrink:0;line-height:1.3;}
+  .u-body{flex:1;min-width:0;}
+  .u-shop{font-size:11px;color:var(--sub);}
+  .u-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .status-chip{
+    font-size:10px;font-weight:700;padding:4px 8px;border-radius:20px;
+    flex-shrink:0;white-space:nowrap;
+  }
+  .status-chip.none{background:var(--pink-bg);color:var(--pink-text);}
+  .status-chip.done{background:var(--green-bg);color:var(--green-text);}
+  .status-chip.dash{background:#eef0f3;color:var(--sub);}
+  .chev{color:#c3c8d1;flex-shrink:0;}
+  /* ▲ 直近の予定リスト */
+
+  /* ▼ 保存済み一覧（2026-08-24 UI再設計：カード型→リスト型に変更。
+     判定ロジック（isEndedItem・getCaseConfidence等）には触れず、表示専用のマークアップ／スタイルのみ変更） */
+  .elist-section{margin-bottom:18px;}
+  .elist-section-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:8px;gap:8px;
+  }
+  .elist-section-head .head-left{display:flex;align-items:center;gap:6px;min-width:0;}
+  .elist-section-head h2{font-size:14px;margin:0;font-weight:700;color:var(--text);white-space:nowrap;}
+  /* セクションの意味を色で示す細いアクセント（背景は塗らず、見出し横のドットと件数バッジだけに使う） */
+  .sec-dot{width:4px;height:14px;border-radius:2px;flex-shrink:0;background:var(--gray-text);}
+  .sec-dot.new{background:var(--accent-new);}
+  .sec-dot.pending{background:var(--accent-pending);}
+  .sec-dot.review{background:var(--accent-review);}
+  .sec-dot.other{background:var(--accent-other);}
+  .count-badge{
+    background:var(--accent-new);color:#fff;font-size:11px;font-weight:700;
+    border-radius:10px;padding:1px 7px;flex-shrink:0;
+  }
+  .count-badge.pending{background:var(--accent-pending);}
+  .count-badge.review{background:var(--accent-review);}
+  .count-badge.other{background:var(--accent-other);}
+  .count-badge.muted{background:var(--gray-bg);color:var(--gray-text);}
+  .elist-see-all{
+    font-size:12px;color:var(--link);background:none;border:none;
+    cursor:pointer;font-family:inherit;font-weight:600;
+    display:flex;align-items:center;gap:2px;flex-shrink:0;padding:0;
+  }
+  .elist-wrap{
+    background:var(--card);border-radius:var(--radius);
+    border:1px solid var(--border);overflow:hidden;
+  }
+  .elist-row{
+    padding:12px 14px;border-bottom:1px solid var(--border);
+    border-left:3px solid transparent;
+  }
+  .elist-row:last-child{border-bottom:none;}
+  .elist-row.is-ended{opacity:.6;filter:saturate(.7);}
+  .elist-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .elist-top-left{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;}
+  /* NEWは塗りつぶしバッジではなく、緑の文字だけの軽いラベルにする（「検知が新しい」という鮮度情報であり、状態ラベルではない） */
+  .elist-newtag{font-size:11px;font-weight:800;color:var(--accent-new);flex-shrink:0;}
+  .elist-store{
+    font-size:11px;color:var(--sub);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;
+  }
+  .elist-status-badge{
+    font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;
+    white-space:nowrap;flex-shrink:0;
+  }
+  /* review＝「要確認」（商品は特定済み）はオレンジ、unresolved＝「要確認（商品未特定）」は紫（その他の新着と同系統） */
+  .elist-status-badge.review{background:var(--orange-bg);color:var(--accent-review);}
+  .elist-status-badge.unresolved{background:var(--purple-bg);color:var(--accent-other);}
+  .elist-status-badge.pending{background:var(--blue-bg);color:var(--accent-pending);}
+  .elist-status-badge.ended{background:var(--gray-bg);color:var(--gray-text);}
+  .elist-name{
+    font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .elist-sub{font-size:12px;color:#4b5160;margin-bottom:8px;}
+  .elist-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .elist-sitelink{
+    font-size:12px;color:var(--link);background:none;border:none;padding:0;
+    cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:3px;flex-shrink:0;
+  }
+  /* 2026-08-24③修正：応募済みにするは危険操作ではないため赤をやめ、落ち着いた濃いグレーのテキストリンクにする */
+  .elist-apply{
+    font-size:12px;color:#4b5160;background:none;border:none;padding:0;
+    cursor:pointer;font-family:inherit;font-weight:600;
+    display:flex;align-items:center;gap:3px;white-space:nowrap;
+  }
+  .elist-apply.done{color:var(--sub);}
+  .elist-menu-wrap{position:relative;flex-shrink:0;}
+  .elist-menu-btn{
+    background:none;border:none;color:var(--sub);cursor:pointer;
+    font-size:16px;padding:2px 6px;font-family:inherit;line-height:1;
+  }
+  .elist-menu{
+    position:absolute;right:0;bottom:100%;margin-bottom:4px;
+    background:#fff;border:1px solid var(--border);border-radius:8px;
+    box-shadow:0 2px 10px rgba(20,20,30,0.14);min-width:120px;z-index:10;
+    display:none;overflow:hidden;
+  }
+  .elist-menu.open{display:block;}
+  .elist-menu button{
+    display:block;width:100%;text-align:left;background:none;border:none;
+    padding:9px 12px;font-size:12px;color:var(--text);cursor:pointer;font-family:inherit;
+  }
+  .elist-menu button:active{background:var(--bg);}
+  .elist-collapsed-head{
+    width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:none;border:none;cursor:pointer;font-family:inherit;
+    padding:10px 0;font-size:14px;font-weight:700;color:var(--text);
+  }
+  .elist-collapsed-head .head-left{display:flex;align-items:center;gap:6px;min-width:0;}
+  .elist-collapsed-head .chev-icon{color:var(--sub);font-size:11px;font-weight:400;}
+  /* ▲ 保存済み一覧 */
+
+  /* ▼ 汎用ボタン（設定・抽出モーダル等、リストUI以外で引き続き使用） */
+  .btn{
+    border:none;border-radius:8px;
+    padding:8px 8px;font-size:12px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;
+    font-family:inherit;
+  }
+  .btn-outline{background:var(--bg);color:#4b5160;}
+  .btn-edit{background:var(--gray-bg);color:#4b5160;}
+  /* ▲ 汎用ボタン */
+
+  /* ▼ 店舗カラー・フィルターUI（店舗色は識別用チップのみに限定し控えめにする） */
+  .store-chip{
+    display:inline-block;font-size:10px;font-weight:600;
+    padding:2px 7px;border-radius:6px;margin-right:6px;
+    vertical-align:middle;white-space:nowrap;
+  }
+  .store-chip.joshin{background:var(--blue-bg);color:var(--blue);}
+  .store-chip.furuichi{background:var(--orange-bg);color:var(--orange-text);}
+  .store-chip.tcgpit{background:var(--purple-bg);color:var(--purple);}
+  .store-chip.aeon{background:var(--pink-bg);color:var(--pink-text);}
+  .store-chip.pokemoncenter{background:var(--gold-bg);color:var(--gold-text);}
+  .store-chip.unknown{background:var(--gray-bg);color:var(--gray-text);}
+
+  .filter-row{display:flex;gap:8px;margin-bottom:10px;}
+  .filter-select{
+    flex:1;min-width:0;
+    font-family:inherit;font-size:12px;color:var(--text);
+    background:var(--card);border:1px solid var(--border);
+    border-radius:10px;padding:7px 8px;
+    appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b93a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center;background-size:14px;
+    padding-right:26px;
+  }
+  .list-toggle-btn{
+    width:100%;background:none;border:none;color:var(--sub);
+    font-size:12px;padding:10px 0;cursor:pointer;font-family:inherit;
+  }
+  .more-btn{
+    width:100%;background:var(--card);border:1px solid var(--border);
+    color:var(--teal-dark);font-weight:700;font-size:12px;
+    padding:10px 0;border-radius:12px;cursor:pointer;font-family:inherit;
+    box-shadow:var(--shadow);margin-top:4px;
+  }
+  /* ▲ 店舗カラー・フィルターUI */
+
+  /* ▼ カレンダーモーダル */
+  .overlay{
+    position:fixed;inset:0;background:rgba(20,22,30,0.45);
+    display:none;align-items:flex-end;justify-content:center;
+    z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .overlay-inner{
+    width:100%;max-width:430px;
+    max-height:88vh;overflow-y:auto;
+    background:var(--card);
+    border-radius:22px 22px 0 0;
+    padding:14px 18px 22px;
+    animation:slideUp .28s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .grabber{width:38px;height:4px;background:#dfe2e8;border-radius:4px;margin:0 auto 12px;}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cal-head h3{font-size:17px;margin:0;font-weight:800;}
+  .cal-nav{background:none;border:none;font-size:18px;color:var(--sub);cursor:pointer;padding:4px 8px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+  .cal-dow{font-size:11px;color:var(--sub);padding:4px 0;font-weight:600;}
+  .cal-day{
+    position:relative;font-size:13px;padding:8px 0 10px;
+    border-radius:10px;cursor:pointer;
+  }
+  .cal-day.today{outline:1.5px solid var(--teal);border-radius:50%;width:30px;height:30px;margin:0 auto;display:flex;align-items:center;justify-content:center;padding:0;color:var(--teal);font-weight:700;}
+  .cal-day.selected{background:#e6f6f4;}
+  .cal-day .dots{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);display:flex;gap:2px;}
+  .cal-day .dots span{width:5px;height:5px;border-radius:50%;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin:14px 0;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#4b5160;}
+  .day-plan h4{font-size:13px;margin:12px 0 8px;}
+  .plan-item{
+    display:flex;align-items:center;gap:10px;
+    background:#f8f9fb;border-radius:12px;padding:10px 12px;margin-bottom:8px;
+  }
+  .plan-item .u-shop, .plan-item .u-name{margin:0;}
+  .close-btn{
+    display:block;width:100%;text-align:center;background:none;border:none;
+    color:var(--sub);font-size:13px;padding:10px 0 0;cursor:pointer;font-family:inherit;
+  }
+  /* ▲ カレンダーモーダル */
+
+  /* ▼ 商品マスタ閲覧 */
+  .pm-item{
+    background:#f8f9fb;border:1px solid var(--border);border-radius:12px;
+    padding:10px 12px;margin-bottom:10px;box-shadow:var(--shadow);
+  }
+  .pm-id{font-size:11px;color:var(--sub);font-weight:700;}
+  .pm-name{font-size:14px;font-weight:800;margin:2px 0 6px;word-break:break-word;color:var(--text);}
+  .pm-meta{font-size:12px;color:var(--sub);margin-bottom:6px;}
+  .pm-alias-label{font-size:11px;color:var(--sub);margin:6px 0 4px;}
+  .pm-alias-wrap{display:flex;flex-wrap:wrap;gap:4px;}
+  .pm-alias-tag{
+    display:inline-block;background:var(--bg);color:var(--text);font-size:11px;
+    padding:3px 8px;border:1px solid var(--border);border-radius:20px;
+    max-width:100%;word-break:break-word;
+  }
+  .pm-image{font-size:12px;color:var(--sub);margin-top:6px;}
+  /* ▲ 商品マスタ閲覧 */
+
+  /* ▼ 保存データ確認（デバッグ） */
+  .dbg-item{
+    background:#f8f9fb;border:1px solid var(--border);border-radius:12px;
+    padding:10px 12px;margin-bottom:10px;box-shadow:var(--shadow);
+  }
+  .dbg-site{font-size:11px;color:var(--sub);font-weight:700;}
+  .dbg-name{font-size:14px;font-weight:800;margin:2px 0 6px;word-break:break-word;color:var(--text);}
+  .dbg-meta{font-size:12px;color:var(--sub);margin-bottom:4px;word-break:break-word;}
+  .dbg-meta b{color:var(--text);font-weight:700;}
+  .dbg-empty{font-size:12px;color:var(--sub);text-align:center;padding:20px 0;}
+  /* ▲ 保存データ確認（デバッグ） */
+
+  .toast{
+    position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:#23262f;color:#fff;font-size:12px;padding:9px 18px;border-radius:30px;
+    opacity:0;pointer-events:none;transition:all .25s ease;z-index:80;white-space:nowrap;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- ▼ヘッダー -->
+  <header>
+    <div class="brand">
+      <div class="pokeball"></div>
+      <div>
+        <h1>ポケカ抽選チェッカー</h1>
+        <div class="updated">
+          最終同期　<span id="updatedTime">未同期</span>
+          <button class="refresh-inline" id="refreshBtn" title="更新">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="headerCalendar" title="カレンダー">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+      </button>
+      <button class="icon-btn" id="headerSettings" title="設定">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82A1.65 1.65 0 0 0 3 13.09H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <!-- ▲ヘッダー -->
+
+  <!-- ▼ステータスサマリー -->
+  <div class="stat-cards">
+    <div class="stat-card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/></svg></div>
+      <div class="stat-label">未応募</div>
+      <div class="stat-value" id="statNone">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-6"/></svg></div>
+      <div class="stat-label">応募済み</div>
+      <div class="stat-value" id="statDone">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></div>
+      <div class="stat-label">日程あり</div>
+      <div class="stat-value" id="statDated">0</div>
+    </div>
+  </div>
+  <!-- ▲ステータスサマリー -->
+
+  <!-- ▼データ注意書き -->
+  <div class="section" style="padding-top:10px;padding-bottom:0;">
+    <p style="font-size:11px;color:var(--sub);line-height:1.6;margin:0;background:#fff;border-radius:10px;padding:9px 12px;box-shadow:var(--shadow);">
+      保存された情報は「チェック済みの記録」です。日時・商品名などの内容は自動抽出のため正確性を保証しません。応募前に必ず公式サイトでご確認ください。
+    </p>
+  </div>
+  <!-- ▲データ注意書き -->
+
+  <!-- ▼直近の予定 -->
+  <div class="section">
+    <div class="section-head">
+      <h2>直近の予定 <span class="sub">（日程が分かっているものだけ）</span></h2>
+    </div>
+    <div class="upcoming-list" id="upcomingList"><!-- JSで生成 --></div>
+  </div>
+  <!-- ▲直近の予定 -->
+
+  <!-- ▼保存済みの抽選・予約情報 -->
+  <div class="section">
+    <!-- ▼店舗・応募状態フィルター -->
+    <div class="filter-row">
+      <select class="filter-select" id="storeFilterSel">
+        <option value="all">すべての店舗</option>
+        <option value="joshin">Joshin</option>
+        <option value="furuichi">ふるいち</option>
+        <option value="tcgpit">トレカピット</option>
+        <option value="aeon">イオン</option>
+        <option value="pokemoncenter">ポケセン</option>
+      </select>
+      <select class="filter-select" id="statusFilterSel">
+        <option value="all">すべての状態</option>
+        <option value="none">未応募</option>
+        <option value="done">応募済み</option>
+      </select>
+    </div>
+    <!-- ▲店舗・応募状態フィルター -->
+    <div id="entryList"><!-- JSで生成 --></div>
+  </div>
+  <!-- ▲保存済みの抽選・予約情報 -->
+
+  <!-- ▼Joshin自動同期（Yahoo!リアルタイム検索経由） -->
+  <div class="overlay" id="extractOverlay">
+    <div class="overlay-inner">
+      <div class="grabber"></div>
+      <h3 style="font-size:16px;margin:0 0 4px;">Joshin・ふるいち・トレカピット・イオン・ポケセンを再同期</h3>
+      <p style="font-size:11px;color:var(--sub);margin:0 0 14px;line-height:1.6;">
+        起動時に自動で検索・同期していますが、ここから今すぐ手動で再同期できます。新しい案件は自動で一覧に追加され、既存の案件は情報のみ更新されます（応募済み・見送りの記録は上書きされません）。<br>
+        ポケセンは日程が公式Xから読み取れない場合があります。詳細は必ず公式サイトでご確認ください。
+      </p>
+
+      <button class="btn btn-edit" id="joshinExtractBtn" style="width:100%;margin-bottom:8px;">今すぐ再同期する</button>
+      <div style="font-size:11px;color:var(--sub);font-weight:700;margin-bottom:2px;">Joshin</div>
+      <div id="joshinExtractStatus" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
+      <div id="joshinExtractResults"><!-- JSで生成（デバッグ用の件数サマリー） --></div>
+
+      <div style="font-size:11px;color:var(--sub);font-weight:700;margin:10px 0 2px;">ふるいち高田西店</div>
+      <div id="furuichiExtractStatus" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
+      <div id="furuichiExtractResults"><!-- JSで生成（デバッグ用の件数サマリー） --></div>
+
+      <div style="font-size:11px;color:var(--sub);font-weight:700;margin:10px 0 2px;">トレカピット上越</div>
+      <div id="tcgpitExtractStatus" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
+      <div id="tcgpitExtractResults"><!-- JSで生成（デバッグ用の件数サマリー） --></div>
+
+      <div style="font-size:11px;color:var(--sub);font-weight:700;margin:10px 0 2px;">イオン西日本</div>
+      <div id="aeonExtractStatus" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
+      <div id="aeonExtractResults"><!-- JSで生成（デバッグ用の件数サマリー） --></div>
+
+      <div style="font-size:11px;color:var(--sub);font-weight:700;margin:10px 0 2px;">ポケモンセンターオンライン</div>
+      <div id="pokemoncenterExtractStatus" style="font-size:12px;color:var(--sub);margin-bottom:10px;"></div>
+      <div id="pokemoncenterExtractResults"><!-- JSで生成（デバッグ用の件数サマリー） --></div>
+
+      <!-- ▼商品マスタ未判定の投稿一覧（デバッグ・マスタ追加候補確認用） -->
+      <div id="joshinUnmatchedWrap" style="display:none;margin-top:6px;">
+        <button id="joshinUnmatchedToggle" style="width:100%;background:none;border:none;color:var(--sub);font-size:12px;padding:10px 0;cursor:pointer;font-family:inherit;text-align:left;"></button>
+        <div id="joshinUnmatchedList"></div>
+      </div>
+      <!-- ▲商品マスタ未判定の投稿一覧 -->
+
+      <button class="close-btn" id="extractClose">閉じる</button>
+    </div>
+  </div>
+  <!-- ▲Joshin自動同期 -->
+
+  <!-- ▼サイト管理・設定 簡易プレースホルダー画面 -->
+  <div class="overlay" id="placeholderOverlay">
+    <div class="overlay-inner">
+      <div class="grabber"></div>
+      <h3 id="placeholderTitle" style="font-size:16px;margin:0 0 10px;"></h3>
+      <p style="font-size:13px;color:var(--sub);line-height:1.7;">サイトの追加・管理と各種設定項目は今後実装予定です。Joshin・ふるいち・トレカピット・イオン・ポケモンセンターの候補取得はヘッダーの検索アイコンから行えます。</p>
+
+      <!-- ▼商品マスタ閲覧への導線 -->
+      <button class="btn btn-outline" id="openProductMasterBtn" style="width:100%;margin-top:4px;">商品マスタ</button>
+      <!-- ▲商品マスタ閲覧への導線 -->
+
+      <!-- ▼保存データ確認（デバッグ）への導線 -->
+      <button class="btn btn-outline" id="openDebugBtn" style="width:100%;margin-top:8px;">保存データの確認（デバッグ）</button>
+      <!-- ▲保存データ確認（デバッグ）への導線 -->
+
+      <button class="close-btn" id="placeholderClose">閉じる</button>
+    </div>
+  </div>
+  <!-- ▲サイト管理・設定 -->
+
+  <!-- ▼商品マスタ閲覧（PRODUCT_MASTERの中身をそのまま一覧表示。閲覧専用） -->
+  <div class="overlay" id="productMasterOverlay">
+    <div class="overlay-inner">
+      <div class="grabber"></div>
+      <h3 style="font-size:16px;margin:0 0 4px;">商品マスタ</h3>
+      <p id="productMasterCount" style="font-size:12px;color:var(--sub);margin:0 0 14px;"></p>
+      <div id="productMasterList"><!-- JSで生成 --></div>
+      <button class="close-btn" id="productMasterClose">閉じる</button>
+    </div>
+  </div>
+
+  <!-- ▼保存データ確認（デバッグ）：localStorage保存済みデータを端末上で直接確認するための画面。閲覧専用（編集・削除なし） -->
+  <div class="overlay" id="debugOverlay">
+    <div class="overlay-inner">
+      <div class="grabber"></div>
+      <h3 style="font-size:16px;margin:0 0 10px;">保存データの確認（デバッグ）</h3>
+      <div class="filter-row" style="margin-bottom:10px;">
+        <select class="filter-select" id="debugStoreFilterSel">
+          <option value="all">すべての店舗</option>
+          <option value="joshin">Joshin</option>
+          <option value="furuichi">ふるいち</option>
+          <option value="tcgpit">トレカピット</option>
+          <option value="aeon">イオン</option>
+          <option value="pokemoncenter">ポケセン</option>
+        </select>
+      </div>
+      <p id="debugCount" style="font-size:12px;color:var(--sub);margin:0 0 10px;"></p>
+      <div id="debugList"><!-- JSで生成 --></div>
+      <button class="close-btn" id="debugClose">閉じる</button>
+    </div>
+  </div>
+  <!-- ▲保存データ確認（デバッグ） -->
+  <!-- ▲商品マスタ閲覧 -->
+
+  <!-- ▼カレンダーモーダル -->
+  <div class="overlay" id="calOverlay">
+    <div class="overlay-inner">
+      <div class="grabber"></div>
+      <div class="cal-head">
+        <button class="cal-nav" id="calPrev">‹</button>
+        <h3 id="calMonthLabel">2026年8月</h3>
+        <button class="cal-nav" id="calNext">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"><!-- JSで生成 --></div>
+      <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:var(--green)"></span>開始</div>
+        <div class="legend-item"><span class="dot" style="background:var(--red)"></span>締切</div>
+        <div class="legend-item"><span class="dot" style="background:var(--purple)"></span>発表</div>
+        <div class="legend-item"><span class="dot" style="background:var(--blue)"></span>発売</div>
+      </div>
+      <div class="day-plan">
+        <h4 id="calSelectedLabel">8月20日（水）の予定</h4>
+        <div id="calDayEvents"><!-- JSで生成 --></div>
+      </div>
+      <button class="close-btn" id="calClose">閉じる</button>
+    </div>
+  </div>
+  <!-- ▲カレンダーモーダル -->
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ▼ 保存データ読み込み（抽出ツール pokeca-extractor.html と localStorage を共有） */
+const STORAGE_KEY = "pokeca_saved_items";
+
+function loadSavedItems(){
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch(e){
+    return [];
+  }
+}
+function saveSavedItems(list){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+let savedItems = loadSavedItems();
+/* ▲ 保存データ読み込み */
+
+/* ▼ Joshin候補抽出（Yahoo!リアルタイム検索経由）※pokeca-extractor.htmlより移植 */
+// 全サイト共通：含む(OR)キーワード／除外(NOT)キーワード（extractorと同一。他サイト分は今回対象外だが判定ロジックは共通のため保持）
+const INCLUDE_KEYWORDS = [
+  'ポケモンカード', 'ポケカ', 'Pokémon Card', 'Pokemon Card',
+  '抽選', '抽選販売', '予約', '予約販売', '再販', '受付開始'
+];
+const EXCLUDE_KEYWORDS = [
+  '買取', '値下げ', '値引き', 'セール', '入荷', '在庫あり', '休業', '営業時間',
+  'くじ', 'オリパ',
+  'ワンピース', 'ワンピ', 'デュエマ', '遊戯王', 'ガンダム', 'MTG',
+  'ヴァイスシュヴァルツ', 'ヴァイス',
+  'ジムバトル', 'ピットナイト', '優勝', '抽選結果', '結果を発表'
+];
+
+// テキスト＋絵文字img altを結合して1本のテキストにする
+function extractCombinedText(el) {
+  if (!el) return '';
+  let parts = [];
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      parts.push(node.textContent);
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (node.tagName === 'IMG' && node.getAttribute('alt')) {
+        parts.push(node.getAttribute('alt'));
+      }
+      node.childNodes.forEach(walk);
+    }
+  };
+  walk(el);
+  return parts.join('').replace(/\s+/g, ' ').trim();
+}
+
+function matchesKeywordRule(text, requiredKeywords) {
+  const hasInclude = INCLUDE_KEYWORDS.some(k => text.includes(k));
+  const hasExclude = EXCLUDE_KEYWORDS.some(k => text.includes(k));
+  const hasRequired = requiredKeywords.length === 0
+    || requiredKeywords.every(k => text.includes(k));
+  return hasInclude && !hasExclude && hasRequired;
+}
+
+
+function nowISO() {
+  return new Date().toISOString();
+}
+// 商品名の比較用キー（空白除去のみの軽い正規化。表記揺れの吸収はincludes判定側で行う）
+function normalizeProductKey(name){
+  if(!name) return null;
+  return name.replace(/[\s　]+/g, "");
+}
+/* ▼ 商品マスタ（全サイト共通） */
+// 店舗（Joshin／古本市場／イオン等）に依存しない商品情報。
+// releaseDateは商品そのものの初回発売日であり、各店舗で拾った再販・抽選イベントの日付とは別管理する。
+// imageUrlは権利関係が確認できたものだけ登録する。未確認の間はnullのままにし、UI側はnullを前提に表示する。
+// 今はJoshinで実際に検知できた商品を確認しながら少しずつ登録していく段階（全件登録はまだ行わない）。
+// 実データは外部ファイル products.json に分離。起動時に loadProductMaster() で読み込んでこの変数にセットする。
+let PRODUCT_MASTER = [];
+
+// products.json を読み込みPRODUCT_MASTERにセットする。
+// 商品マスタ読込完了前にJoshin自動同期の商品照合を開始してはいけないため、
+// 呼び出し側（起動処理）はこのPromiseの完了を待ってからsyncJoshinData()を呼ぶこと。
+// cache:"no-store"は開発中にproducts.jsonを更新した際、古い内容が残らないようにするため。
+async function loadProductMaster(){
+  const res = await fetch("./products.json", { cache: "no-store" });
+  if(!res.ok){
+    throw new Error("商品マスタの取得に失敗しました（HTTP " + res.status + "）");
+  }
+  const data = await res.json();
+  PRODUCT_MASTER = data;
+  return PRODUCT_MASTER;
+}
+
+// 投稿本文から抽出した商品名候補を商品マスタと照合し、一致した商品マスタのレコードを返す。
+// 判定は正規化キー同士の部分一致（表記揺れ・略称対応のため厳密一致は求めない）。
+function matchProductMaster(candidateName){
+  if(!candidateName) return null;
+  const key = normalizeProductKey(candidateName);
+  if(!key) return null;
+  return PRODUCT_MASTER.find(p =>
+    p.aliases.some(alias => {
+      const aliasKey = normalizeProductKey(alias);
+      return aliasKey && (key.includes(aliasKey) || aliasKey.includes(key));
+    })
+  ) || null;
+}
+
+// 投稿本文全体をPRODUCT_MASTERの全商品と照合し、本文中に含まれる商品を複数検出する。
+// matchProductMaster（guessedProductName単発照合）とは別に、
+// 「1投稿に複数商品名が書かれている」ケースに対応するための本文全体走査版。
+// 判定方法はmatchProductMasterと同じ考え方（正規化キーの部分一致）だが、
+// 対象が本文全体（長い）なので key.includes(aliasKey) の一方向のみで十分。
+// 同一productIdは1回だけ返す。
+function matchProductsInText(text){
+  if(!text) return [];
+  const key = normalizeProductKey(text);
+  if(!key) return [];
+  const matched = [];
+  const seenIds = new Set();
+  PRODUCT_MASTER.forEach(p => {
+    const hit = p.aliases.some(alias => {
+      const aliasKey = normalizeProductKey(alias);
+      return aliasKey && key.includes(aliasKey);
+    });
+    if(hit && !seenIds.has(p.id)){
+      seenIds.add(p.id);
+      matched.push(p);
+    }
+  });
+  return matched;
+}
+/* ▲ 商品マスタ（全サイト共通） */
+</script>
+
+<script src="joshin.js"></script>
+
+<script src="furuichi.js"></script>
+
+<script src="tcgpit.js"></script>
+
+<script src="aeon.js"></script>
+
+<script src="pokemoncenter.js"></script>
+
+<script>
+/* ▼ 表示用ユーティリティ */
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+function formatDetectedAt(iso){
+  if(!iso) return "不明";
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return iso;
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+
+// 「8/22」「8月22日」「2026-08-22」等ゆるい日付表記から月日だけを推定する。
+// 自動抽出データが前提のため、読み取れない場合はnull（カレンダーには載せず、カード内テキストとしてのみ表示）
+function parseLooseMonthDay(text){
+  if(!text) return null;
+  let m = text.match(/(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})/);
+  if(m) return { month:Number(m[2]), day:Number(m[3]) };
+  m = text.match(/(\d{1,2})[\/月](\d{1,2})/);
+  if(m) return { month:Number(m[1]), day:Number(m[2]) };
+  return null;
+}
+
+// ▼ プレースホルダー表示専用のUI分類（displayType）
+// これは商品の厳密なカテゴリ（category）とは別の、一覧でどのプレースホルダーを出すかだけを決める表示用の分類。
+// 2026-08-24修正：商品画像が無いことを主役にしないため、種別が分からない(unknown)場合はラベルを出さない
+// （box/pack/deck/set等、販売単位が明記から読み取れているものだけ小さなラベルを表示する）。
+const DISPLAY_TYPE_META = {
+  box:    { label:"BOX",  bg:"var(--blue-bg)",   text:"var(--blue)" },
+  pack:   { label:"PACK", bg:"var(--orange-bg)", text:"var(--orange-text)" },
+  deck:   { label:"DECK", bg:"var(--green-bg)",  text:"var(--green-text)" },
+  set:    { label:"SET",  bg:"var(--pink-bg)",   text:"var(--pink-text)" },
+  unknown:{ label:"",     bg:"var(--gray-bg)",   text:"var(--gray-text)" }
+};
+
+// プレースホルダー内の補助商品名（小さいので短く丸める。カード本文側の正式名称とは別の"見分けるための"表示）
+function shortProductLabel(item){
+  const name = (item && item.productName ? item.productName : "").toString().trim();
+  if(!name) return "";
+  const MAX = 6;
+  return name.length > MAX ? name.slice(0, MAX) + "…" : name;
+}
+
+// 取得済みテキスト（status・rawText等、既存フィールドのみ）から販売単位が明記されている場合だけbox/packを判定する。
+// 「拡張パックだからBOXだろう」のような商品カテゴリからの推測は行わない。明記が無ければnull（=unknown行き）。
+function detectDisplayTypeFromText(item){
+  const text = [item && item.status, item && item.rawText].filter(Boolean).join(" ");
+  if(!text) return null;
+  if(/\d+\s*BOX|BOX\s*販売|BOX単位/i.test(text)) return "box";
+  if(/\d+\s*パック|パック\s*販売|パック単位/i.test(text)) return "pack";
+  return null;
+}
+
+// displayTypeの決定順：
+// ① item自体に有効なdisplayTypeが明示されていればそれを優先（将来、取得側で設定される場合に備える）
+// ② 商品マスタ（products.json）側でdeck/setと明確な商品はそれに従う
+// ③ 案件テキストから販売単位（BOX/PACK）が明記されている場合のみ判定
+// ④ 上記いずれにも該当しなければ"unknown"（推測はしない）
+function resolveDisplayType(item){
+  const validTypes = ["box","pack","deck","set","unknown"];
+  if(item && item.displayType && validTypes.includes(item.displayType) && item.displayType !== "unknown"){
+    return item.displayType;
+  }
+  const product = item && item.productId ? PRODUCT_MASTER.find(p => p.id === item.productId) : null;
+  if(product && (product.displayType === "deck" || product.displayType === "set")){
+    return product.displayType;
+  }
+  const detected = detectDisplayTypeFromText(item || {});
+  if(detected) return detected;
+  return "unknown";
+}
+// ▲ プレースホルダー表示専用のUI分類（displayType）
+
+// displayTypeに応じたプレースホルダーのHTML（種別ラベルのみ。商品名はカード本文側で大きく表示するため、
+// ここでの重複表示は行わない＝2026-08-24修正：不明枠を主役にしないための簡素化）
+function buildPlaceholderMarkup(displayType, item, size){
+  const meta = DISPLAY_TYPE_META[displayType] || DISPLAY_TYPE_META.unknown;
+  return `<div class="entry-thumb" style="width:${size}px;height:${size}px;background:${meta.bg};color:${meta.text};">`
+    + (meta.label ? `<div style="font-size:9px;font-weight:800;letter-spacing:.5px;">${meta.label}</div>` : "")
+    + `</div>`;
+}
+
+// 商品サムネイル表示。imageUrlがあれば画像（object-fit:contain）、無ければdisplayType別プレースホルダーを出す。
+// 画像の読み込みに失敗した場合も、同じdisplayTypeのプレースホルダーへ自動フォールバックする。
+// 2026-08-24修正：デフォルトサイズを64→40に縮小（商品名を主役にするため、画像枠の存在感を弱める）。
+function buildProductThumbHtml(item, size){
+  const s = size || 40;
+  const displayType = resolveDisplayType(item || {});
+  const placeholder = buildPlaceholderMarkup(displayType, item || {}, s);
+  const imageUrl = item && item.imageUrl;
+  if(imageUrl){
+    // onerror属性（"…"で囲まれたHTML属性）の中で使うため、プレースホルダーHTML内の " は &quot; にしてから
+    // JS文字列としては '...' で囲む（原文の実装と同じ考え方）
+    const placeholderForOnerror = placeholder.replace(/"/g, "&quot;");
+    return `<img src="${escapeHtml(imageUrl)}" alt="" style="width:${s}px;height:${s}px;border-radius:10px;object-fit:contain;flex-shrink:0;background:#fff;border:1px solid var(--border);" onerror="this.outerHTML='${placeholderForOnerror}';">`;
+  }
+  return placeholder;
+}
+
+function productLabel(item){
+  if(item.productName) return item.productName;
+  if(item.rawText) return item.rawText.slice(0, 28) + (item.rawText.length > 28 ? "…" : "");
+  return "(商品名不明)";
+}
+/* ▲ 表示用ユーティリティ */
+
+const typeMeta = {
+  deadline:{label:"締切", cls:"deadline"},
+  announce:{label:"発表", cls:"announce"},
+  sale:{label:"発売", cls:"sale"},
+  start:{label:"開始", cls:"start"}
+};
+const statusMeta = {
+  none:{label:"未応募", cls:"none"},
+  done:{label:"応募済み", cls:"done"}
+};
+
+/* ▼ 店舗カラー判定（siteNameの文字列揺れを吸収するため専用関数に集約） */
+function getStoreMeta(item){
+  const name = (item && item.siteName ? item.siteName : "").toString();
+  if(/joshin|ジョーシン/i.test(name)){
+    return { key:"joshin", label:"Joshin", chipClass:"joshin", borderColor:"var(--blue)" };
+  }
+  if(name.includes("ふるいち")){
+    return { key:"furuichi", label:"ふるいち", chipClass:"furuichi", borderColor:"var(--orange)" };
+  }
+  if(name.includes("トレカピット") || name.includes("カードピット") || /tcgpit/i.test(name)){
+    return { key:"tcgpit", label:"トレカピット", chipClass:"tcgpit", borderColor:"var(--purple)" };
+  }
+  if(name.includes("イオン") || /aeon/i.test(name)){
+    return { key:"aeon", label:"イオン", chipClass:"aeon", borderColor:"var(--pink-text)" };
+  }
+  if(name.includes("ポケモンセンター") || name.includes("ポケセン") || /pokemoncenter/i.test(name)){
+    return { key:"pokemoncenter", label:"ポケセン", chipClass:"pokemoncenter", borderColor:"var(--gold)" };
+  }
+  return { key:"unknown", label: name || "不明", chipClass:"unknown", borderColor:"var(--sub)" };
+}
+/* ▲ 店舗カラー判定 */
+
+/* ▼ 販売フェーズ（salePhase）・受付方式（entryMethod）2026-08-23追加
+   案件を「販売フェーズ＝初回/再販」「受付・販売方式＝抽選/予約/直接販売」の独立した2軸で表現する。
+   狙い：「再販＝direct」のような誤った決めつけを避け、「再販抽選」のような組み合わせも正しく表現するため。
+   既存の item.status（生の抽出文字列）は後方互換・元情報保存用としてそのまま残し、削除・変更しない。
+   ここでの判定は item.salePhase/item.entryMethod が既に明示されていればそれを尊重し、
+   無ければ item.status・item.rawText から安全に読み取れる範囲だけ判定する。読み取れなければ推測せず"unknown"。
+   商品発売日や投稿の新旧はここでは一切見ない（案件の鮮度＝この2軸は投稿内容ベースで決める）。 */
+function detectSalePhase(item){
+  if(item && (item.salePhase === "initial" || item.salePhase === "reprint")) return item.salePhase;
+  const text = [item && item.status, item && item.rawText].filter(Boolean).join(" ");
+  if(!text) return "unknown";
+  if(/再販|再入荷|リストック/.test(text)) return "reprint";
+  if(/新商品|新弾|新発売|発売決定|初回/.test(text)) return "initial";
+  return "unknown";
+}
+function detectEntryMethod(item){
+  if(item && (item.entryMethod === "lottery" || item.entryMethod === "reservation" || item.entryMethod === "direct")) return item.entryMethod;
+  const text = [item && item.status, item && item.rawText].filter(Boolean).join(" ");
+  if(!text) return "unknown";
+  if(/抽選/.test(text)) return "lottery";
+  if(/予約/.test(text)) return "reservation";
+  // 抽選・予約のどちらでもない場合、再販・発売・入荷・販売等の「販売そのものを示す語」があれば
+  // 応募プロセスを介さない販売＝directとみなす（先着/通常販売/店頭販売のような明記が無くても、
+  // 抽選/予約という語が無い時点で「応募不要の販売」という情報は文面から読み取れているため推測ではない）。
+  if(/先着|通常販売|店頭販売|即売|販売開始|再販|発売|入荷|販売/.test(text)) return "direct";
+  return "unknown";
+}
+// candidateにsalePhase/entryMethodを付与する（syncSiteResultsで保存直前に呼ぶ）。既存の値があれば尊重する。
+function applyDerivedCaseFields(candidate){
+  if(!candidate) return candidate;
+  return {
+    ...candidate,
+    salePhase: detectSalePhase(candidate),
+    entryMethod: detectEntryMethod(candidate)
+  };
+}
+// 2軸の組み合わせから表示ラベルを生成する。該当なし（unknownを含む等）はnullを返し、呼び出し側で
+// 既存item.statusへフォールバックさせる（表示優先順位：終了＞要確認＞この2軸ラベル＞既存status＞不明）。
+const SALE_CASE_LABELS = {
+  "initial:lottery": "抽選",
+  "reprint:lottery": "再販抽選",
+  "initial:reservation": "予約",
+  "reprint:reservation": "再販予約",
+  "reprint:direct": "再販",
+  "initial:direct": "販売"
+};
+function getSaleCaseLabel(item){
+  const phase = detectSalePhase(item);
+  const method = detectEntryMethod(item);
+  return SALE_CASE_LABELS[phase + ":" + method] || null;
+}
+// 将来「抽選結果」検知で終了確認する対象を絞り込むための判定フック。対象はentryMethod===lotteryのみ
+// （salePhaseは初回・再販どちらでも対象。reprint×directなど抽選を伴わない案件は対象外）。
+// 現時点では未使用（結果検索そのものは今回実装しない）。将来この関数の戻り値がtrueの案件だけを
+// 「結果発表投稿の検知→該当案件の終了確定」処理の対象にする想定。
+function isEligibleForResultCheck(item){
+  return detectEntryMethod(item) === "lottery";
+}
+/* ▲ 販売フェーズ・受付方式 */
+
+/* ▼ 案件種別（item.status）カラー判定。店舗カラーとは別軸（「何の案件か」）
+   2026-08-23: salePhase×entryMethodのラベル（getSaleCaseLabel）が決まればそちらを優先し、
+   決まらない場合のみ既存のitem.status文字列で判定する（表示ラベルの優先順位と揃える）。 */
+function getCaseTypeMeta(item){
+  const s = (getSaleCaseLabel(item) || (item && item.status) || "").toString();
+  if(s.includes("抽選")) return { bg:"var(--purple-bg)", text:"var(--purple)" };
+  if(s.includes("予約")) return { bg:"var(--blue-bg)", text:"var(--blue)" };
+  if(s.includes("再販")) return { bg:"var(--green-bg)", text:"var(--green-text)" };
+  if(s.includes("販売") || s.includes("先着")) return { bg:"var(--orange-bg)", text:"var(--orange-text)" };
+  return { bg:"var(--gray-bg)", text:"var(--gray-text)" }; // 要確認・詳細確認・未知のstatusはグレーへフォールバック
+}
+/* ▲ 案件種別カラー判定 */
+
+/* ▼ 終了判定（applyEndが明確に解釈できる場合のみ） */
+// 月日だけの情報から実際の日付(Date)を復元する。年をまたぐケース（例：12月の予定が年明けに残っている）を
+// ある程度救えるよう、素直に「今年」で解釈した結果が今日より180日以上過去になる場合だけ「来年」とみなす。
+function resolveScheduleDate(md){
+  if(!md) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let d = new Date(today.getFullYear(), md.month - 1, md.day);
+  const diffDays = (d - today) / 86400000;
+  if(diffDays < -180){
+    d = new Date(today.getFullYear() + 1, md.month - 1, md.day);
+  }
+  return d;
+}
+
+// applyEndが明確に解釈できる場合のみ終了判定を行う（読み取れない場合は推測せず「終了扱いにしない」）。
+// 締切当日はまだ終了扱いにせず、締切日の翌日から終了扱いにする。
+function isPastDeadline(applyEndRaw){
+  const md = parseLooseMonthDay(applyEndRaw);
+  if(!md) return false;
+  const deadline = resolveScheduleDate(md);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return today.getTime() > deadline.getTime();
+}
+/* ▲ 終了判定 */
+
+/* ▼ 終了判定の拡張（applyEndだけでなく、終了明示・事前抽選＋発売日経過も見る） */
+// 投稿本文・statusに「受付終了」「抽選終了」等の終了が明示されているかどうか。
+function hasExplicitEndedText(item){
+  const text = [item && item.status, item && item.rawText].filter(Boolean).join(" ");
+  if(!text) return false;
+  return /受付終了|抽選終了|応募終了|予約終了/.test(text);
+}
+
+// 「発売前の事前抽選」であることが投稿本文・statusから明確に読み取れるかどうかを判定する専用関数。
+// 曖昧な語だけで強く判定しないよう、「再販」の語が含まれる場合は事前抽選とはみなさない
+// （再販抽選・再入荷抽選は発売日経過による自動終了の対象外にするため）。
+function isPreReleaseLottery(item){
+  const text = [item && item.status, item && item.rawText].filter(Boolean).join(" ");
+  if(!text) return false;
+  if(text.includes("再販")) return false;
+  if(!/事前抽選|発売前抽選|発売前の抽選|事前応募/.test(text)) return false;
+  // 2026-08-23追加：salePhase/entryMethodの2軸でも「初回×抽選」以外なら対象外にする保険。
+  // （上のテキスト判定と役割は重複するが、reprintを含む・lottery以外の案件が
+  //   商品発売日経過だけで誤って終了扱いにならないよう二重に防ぐ）
+  if(detectEntryMethod(item) !== "lottery") return false;
+  if(detectSalePhase(item) === "reprint") return false;
+  return true;
+}
+
+// 案件のproductIdから商品マスタを参照し、正式な発売日（releaseDate）を取得する。
+// 投稿本文に書かれた日付ではなく、商品マスタの値を正式情報として扱う。
+function getMasterReleaseDate(item){
+  if(!item || !item.productId) return null;
+  const product = PRODUCT_MASTER.find(p => p.id === item.productId);
+  return product && product.releaseDate ? product.releaseDate : null;
+}
+
+// 商品マスタのreleaseDate（"YYYY-MM-DD"）が今日を過ぎているかどうか。releaseDate当日はまだ過ぎていない扱い。
+function isMasterReleaseDatePast(releaseDateStr){
+  if(!releaseDateStr) return false;
+  const d = new Date(releaseDateStr + "T00:00:00");
+  if(isNaN(d.getTime())) return false;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return today.getTime() > d.getTime();
+}
+
+// 案件全体を見て終了済みかどうかを判定する。通常一覧／終了済み折りたたみの分類はこの関数を使う。
+// 優先順位：①結果投稿センサーによる終了確定 ②applyEndが明確に過ぎている ③終了が明示されている
+// ④事前抽選かつ商品マスタの発売日が明確に過ぎている
+// いずれにも該当しなければ終了済みにしない（日付不明・発売後の再販抽選・投稿が古いだけ、は現役のまま残す）。
+function isEndedItem(item){
+  if(!item) return false;
+  if(item.endedConfirmed) return true;
+  if(isPastDeadline(item.applyEnd)) return true;
+  if(hasExplicitEndedText(item)) return true;
+  if(isPreReleaseLottery(item)){
+    const releaseDate = getMasterReleaseDate(item);
+    if(releaseDate && isMasterReleaseDatePast(releaseDate)) return true;
+  }
+  return false;
+}
+/* ▲ 終了判定の拡張 */
+
+/* ▼ 「終了確定ではないが古い可能性がある」案件の判定・表示ラベル決定 */
+// 終了確定はできないが、「今も受付中」と断定するのが危険な案件を判定する。
+// - applyEndが読み取れている場合は、その情報を信頼する（未来なら現役、過去ならisEndedItemが既に終了扱いにしている）ため対象外
+// - 「再販」を含む案件は、発売日が過去でも現役の可能性が高いため対象外（再販案件の例外）
+// - 商品マスタの正式発売日が明確に過去である場合のみ対象とする（推測はしない）
+function needsOldCaseWarning(item){
+  if(!item) return false;
+  if(isEndedItem(item)) return false;
+  if(item.applyEnd) return false;
+  const text = [item.status, item.rawText].filter(Boolean).join(" ");
+  if(text.includes("再販")) return false;
+  const releaseDate = getMasterReleaseDate(item);
+  if(!releaseDate || !isMasterReleaseDatePast(releaseDate)) return false;
+  return true;
+}
+
+/* ▼ 表示信頼度3段階判定（2026-08-23⑥追加）
+   保存データそのものの構造は変更せず、表示専用の分類として confirmed / needs_review / ended の
+   3段階を1箇所に集約する。既存のisEndedItem・needsOldCaseWarningをそのまま流用し、
+   新たな終了条件・自動除外条件は一切追加しない（古さだけでの終了判定はしない）。
+
+   判定順序：
+   ①isEndedItem(item)がtrue → "ended"（既存の終了条件のみ。変更なし）
+   ②productResolved===false（商品マスタ不一致の要確認案件） → "needs_review"
+   ③needsOldCaseWarning(item)がtrue（発売日経過だが再販ではない等、古い可能性） → "needs_review"
+   ④applyEndまたはapplyStartのどちらかが本文から明確に取得できている → "confirmed"
+     （「現在参加できる強い根拠」として、投稿から実際に読み取れた日程情報のみを根拠にする。
+      推測では確定にしない。Joshinのように日程抽出を行わないサイトの案件は、
+      この根拠が無いため基本的にneeds_reviewのまま残る＝仕様として妥当）
+   ⑤上記いずれにも該当しない場合は "needs_review"（断定材料が弱いため要確認側に寄せる。
+     偽陽性より偽陰性を避ける方針のため、判断に迷う案件は残す側＝needs_reviewを既定値にする） */
+function getCaseConfidence(item){
+  if(isEndedItem(item)) return "ended";
+  if(!item) return "needs_review";
+  if(item.productResolved === false) return "needs_review";
+  if(needsOldCaseWarning(item)) return "needs_review";
+  if(item.applyEnd || item.applyStart) return "confirmed";
+  return "needs_review";
+}
+/* ▲ 表示信頼度3段階判定 */
+
+// カード上部の表示ラベルを決める専用関数。保存データのitem.statusそのものは一切変更しない（表示用のみ）。
+// 優先順位：①終了済み→「終了」 ②要確認（商品未特定）→専用ラベル ③要確認（古い可能性あり等）→「要確認」
+//         ④confirmed：salePhase×entryMethodの2軸ラベル（判明していれば） ⑤元のstatusをそのまま表示
+// typeには表示信頼度3段階（confirmed/needs_review/ended）をそのまま入れる。
+function getDisplayStatusMeta(item){
+  const confidence = getCaseConfidence(item);
+
+  if(confidence === "ended"){
+    return { label:"終了", type:"ended", confidence };
+  }
+  if(confidence === "needs_review"){
+    if(item && item.productResolved === false){
+      return { label:"要確認（商品未特定）", type:"needs_review", confidence };
+    }
+    return { label:"要確認", type:"needs_review", confidence };
+  }
+  const saleLabel = getSaleCaseLabel(item);
+  return { label: saleLabel || (item && item.status) || "不明", type:"confirmed", confidence };
+}
+/* ▲ 「終了確定ではないが古い可能性がある」案件の判定・表示ラベル決定 */
+
+/* ▼ 発売日表示（商品マスタ基準・カード内は短縮表記） */
+// カードの「発売」欄に使う日付は、可能な限り商品マスタの正式発売日を優先する（曖昧な投稿由来の日付は使わない）。
+// 商品マスタに登録が無い場合のみ、案件側に取得済みのreleaseDate／announceDateを補助的に使う。
+function getDisplayReleaseDateRaw(item){
+  return getMasterReleaseDate(item) || (item && (item.releaseDate || item.announceDate)) || null;
+}
+
+// "2026-07-31"のような表記をカード内表示用に"7/31"へ短縮する。解釈できない場合はそのまま表示する（推測しない）。
+function formatShortDateLabel(dateStr){
+  if(!dateStr) return null;
+  const md = parseLooseMonthDay(dateStr);
+  return md ? `${md.month}/${md.day}` : dateStr;
+}
+/* ▲ 発売日表示 */
+
+// 検知からの経過表示（0日は非表示、1日は「検知から1日」、2日以上は「検知から○日」）
+function formatElapsedLabel(elapsed){
+  if(elapsed === null || elapsed <= 0) return "";
+  if(elapsed === 1) return "　検知から1日";
+  return `　検知から${elapsed}日`;
+}
+
+/* ▼ ステータスカード集計 */
+function updateStats(){
+  const total = savedItems.length; // 保存件数は全履歴件数のまま（終了済み・見送り済み含む）
+  const done = savedItems.filter(x=>x.appliedStatus==="done").length; // 応募済みは現状維持
+  // 未応募＝「appliedStatusが未応募」かつ「見送り済みではない」かつ「終了済み（isEndedItem）ではない」もの。
+  // 日程不明の案件は終了と判断できないため、未応募のまま残す。
+  const none = savedItems.filter(x =>
+    x.appliedStatus !== "done" &&
+    x.appliedStatus !== "skipped" &&
+    !isEndedItem(x)
+  ).length;
+  const dated = savedItems.filter(x=> x.applyStart || x.applyEnd || x.resultAnnounce || x.releaseDate || x.announceDate).length; // 現状維持
+  document.getElementById("statNone").textContent = none;
+  document.getElementById("statDone").textContent = done;
+  document.getElementById("statDated").textContent = dated;
+}
+/* ▲ ステータスカード集計 */
+
+/* ▼ 直近の予定リスト（日程が取得できたものだけを対象） */
+function buildUpcoming(){
+  const dateFields = [
+    { key:"applyStart", type:"start" },
+    { key:"applyEnd", type:"deadline" },
+    { key:"resultAnnounce", type:"announce" },
+    { key:"releaseDate", type:"sale" },
+    { key:"announceDate", type:"sale" }
+  ];
+  const list = [];
+  savedItems.filter(item => item.appliedStatus !== "skipped").forEach(item=>{
+    dateFields.forEach(f=>{
+      const raw = item[f.key];
+      if(!raw) return;
+      list.push({
+        type:f.type,
+        raw:raw,
+        md:parseLooseMonthDay(raw),
+        shop:item.siteName || "不明",
+        name:productLabel(item),
+        appliedStatus: item.appliedStatus === "done" ? "done" : "none",
+        linkId:item.id
+      });
+    });
+  });
+  list.sort((a,b)=>{
+    if(a.md && b.md) return (a.md.month*100+a.md.day) - (b.md.month*100+b.md.day);
+    if(a.md) return -1;
+    if(b.md) return 1;
+    return 0;
+  });
+  return list;
+}
+
+function renderUpcoming(){
+  const list = document.getElementById("upcomingList");
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  // 「直近の予定」は日程が正しく解釈できるものだけを対象に、過去日を除外した上で日程が近い順に最大5件だけ表示する。
+  // buildUpcoming()自体はカレンダーモーダル（月全体の予定集計）でも使われているためここでは絞り込まない。
+  const upcoming = buildUpcoming()
+    .filter(item => item.md)
+    .map(item => ({ ...item, fullDate: resolveScheduleDate(item.md) }))
+    .filter(item => item.fullDate.getTime() >= today.getTime())
+    .sort((a,b)=> a.fullDate - b.fullDate)
+    .slice(0, 5);
+  if(upcoming.length === 0){
+    list.innerHTML = `<div style="padding:16px;font-size:12px;color:var(--sub);text-align:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);">開始日・締切・発表日・発売日のいずれかが取得できたデータはまだありません。</div>`;
+    return;
+  }
+  list.innerHTML = "";
+  upcoming.forEach(item=>{
+    const t = typeMeta[item.type];
+    const s = statusMeta[item.appliedStatus] || statusMeta.none;
+    const dateLabel = item.md ? `${item.md.month}/${item.md.day}` : escapeHtml(item.raw).slice(0,8);
+    const row = document.createElement("button");
+    row.className = "upcoming-item";
+    row.innerHTML = `
+      <div class="type-badge ${t.cls}">${t.label}</div>
+      <div class="u-date">${dateLabel}</div>
+      <div class="u-body">
+        <div class="u-shop">${escapeHtml(item.shop)}</div>
+        <div class="u-name">${escapeHtml(item.name)}</div>
+      </div>
+      <div class="status-chip ${s.cls}">${s.label}</div>
+      <span class="chev">›</span>
+    `;
+    row.addEventListener("click", ()=> jumpToCard(item.linkId));
+    list.appendChild(row);
+  });
+}
+/* ▲ 直近の予定リスト */
+
+/* ▼ 保存済みカード描画 */
+let skippedExpanded = false;
+let endedExpanded = false;
+let storeFilter = "all";
+let statusFilter = "all";
+// 2026-08-24 UI再設計：フラットな「もっと見る」1本から、6セクション個別の「すべて見る」開閉に変更
+let sectionExpanded = { newSec:false, pendingSec:false, reviewSec:false, otherSec:false };
+const SECTION_PREVIEW_LIMIT = 3;
+
+function daysSince(iso){
+  if(!iso) return null;
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+
+// 2026-08-24追加：UI表示専用の「新着（NEW）」判定。検知（detectedAt）から24時間以内かどうかのみを見る。
+// 販売状態の確定判定ではない（NEW ≠ confirmed）。保存データやgetCaseConfidence等の既存判定には一切影響しない。
+function isNewItem(item){
+  if(!item || !item.detectedAt) return false;
+  const d = new Date(item.detectedAt);
+  if(isNaN(d.getTime())) return false;
+  return (Date.now() - d.getTime()) <= 24 * 60 * 60 * 1000;
+}
+
+// 2026-08-24 UI再設計②：カード型→リスト型（1件=1行、上段/中段/下段/操作エリア）に全面変更。
+// 2026-08-24 UI再設計③：セクションごとに色分けし、要確認セクション内での「要確認」ラベル重複を省略。
+// 検索・同期・保存・重複判定・終了判定（isEndedItem／getCaseConfidence等）には一切手を入れず、
+// この描画関数の中でだけ「どの情報をどの順で並べるか・どう色分けするか」という表示上の整理を行う。
+// sectionKeyは呼び出し元セクション（"reviewSec"等）を渡すための表示専用の引数（判定には使わない）。
+function buildEntryCardHtml(item, sectionKey){
+  const isDone = item.appliedStatus === "done";
+  const isSkipped = item.appliedStatus === "skipped";
+  const isEnded = !isSkipped && isEndedItem(item);
+  const isNew = !isSkipped && !isEnded && isNewItem(item);
+
+  const displayStatus = getDisplayStatusMeta(item); // confirmed / needs_review / ended（既存ロジックそのまま）
+  const storeMeta = getStoreMeta(item);
+
+  // ▼ 上段右側：状態ラベル。
+  // ・要確認セクション（reviewSec）内では、親見出しの「要確認」とラベルが重複するため省略する
+  //   （reviewSec内の案件はproductResolved!==falseのみ＝常にplain「要確認」になるため、常に省略でよい）
+  // ・「要確認（商品未特定）」は商品未特定という追加情報を持つため、どのセクションでも省略しない（紫系で表示）
+  let rightBadgeHtml = "";
+  if(isSkipped){
+    rightBadgeHtml = `<span class="elist-status-badge ended">見送り</span>`;
+  } else if(isEnded){
+    rightBadgeHtml = `<span class="elist-status-badge ended">終了</span>`;
+  } else if(displayStatus.type === "needs_review"){
+    if(item.productResolved === false){
+      rightBadgeHtml = `<span class="elist-status-badge unresolved">${escapeHtml(displayStatus.label)}</span>`;
+    } else if(sectionKey !== "reviewSec"){
+      rightBadgeHtml = `<span class="elist-status-badge review">${escapeHtml(displayStatus.label)}</span>`;
+    }
+  } else if(displayStatus.type === "confirmed" && item.applyEnd){
+    rightBadgeHtml = `<span class="elist-status-badge pending">受付中</span>`;
+  }
+
+  // ▼ 下段：種別（抽選／予約／販売 等）＋ 日程（値がある項目だけを並べる。「不明」は出さない）。
+  // 締切だけは「今参加できる可能性が高い」情報として青系アクセントで軽く強調する（商品名より強くはしない）。
+  const releaseDateRaw = getDisplayReleaseDateRaw(item);
+  const releaseDateShort = formatShortDateLabel(releaseDateRaw);
+  const releaseIsPast = isMasterReleaseDatePast(getMasterReleaseDate(item));
+  const dateFields = [
+    { label:"開始", value:item.applyStart },
+    { label:"締切", value:item.applyEnd },
+    { label:"発表", value:item.resultAnnounce },
+    { label:"発売", value:releaseDateShort ? (releaseDateShort + (releaseIsPast ? "（発売済み）" : "")) : null }
+  ].filter(f => f.value);
+  const dateFieldsHtml = dateFields.length > 0
+    ? dateFields.map(f => f.label === "締切"
+        ? `${f.label} <span style="color:var(--accent-pending);font-weight:700;">${escapeHtml(f.value)}</span>`
+        : `${f.label} ${escapeHtml(f.value)}`
+      ).join("　")
+    : (item.approxDate ? `およその時期 ${escapeHtml(item.approxDate)}` : "日程の詳細は未取得です");
+  const caseLabel = getSaleCaseLabel(item) || (item.status ? item.status : null);
+  const subLineHtml = [caseLabel ? escapeHtml(caseLabel) : "", dateFieldsHtml].filter(Boolean).join("　|　");
+
+  // ▼ 上段左側：NEWタグ（緑の文字のみ。塗りつぶしバッジには戻さない）＋ 店舗名・検知時刻
+  const newTagHtml = isNew ? `<span class="elist-newtag">NEW</span>` : "";
+  const storeText = `${escapeHtml(storeMeta.label)}・${formatDetectedAt(item.detectedAt)}`;
+
+  // ▼ 操作エリア：公式を見る（テキストリンク）／応募済みにする（濃いグレーのテキスト+チェック。危険操作色は使わない）／見送るは「…」メニュー内
+  const siteLinkHtml = `<button class="elist-sitelink site-link-btn" data-url="${item.sourceUrl ? escapeHtml(item.sourceUrl) : ''}" ${!item.sourceUrl ? 'disabled style="opacity:.4;"' : ''}>公式を見る<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg></button>`;
+
+  const applyHtml = isSkipped
+    ? ""
+    : `<button class="elist-apply toggle-btn${isDone ? ' done' : ''}" data-id="${item.id}">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>${isDone ? "応募済み" : "応募済みにする"}
+      </button>`;
+
+  const menuHtml = isSkipped
+    ? `<button class="elist-menu-btn unskip-btn" data-id="${item.id}" title="見送りを取り消す">…</button>`
+    : `<div class="elist-menu-wrap">
+        <button class="elist-menu-btn menu-toggle-btn" data-id="${item.id}">…</button>
+        <div class="elist-menu" data-menu-for="${item.id}">
+          <button class="skip-btn" data-id="${item.id}">見送る</button>
+        </div>
+      </div>`;
+
+  return `
+    <div class="elist-row${isEnded ? ' is-ended' : ''}" id="card-${item.id}" style="${isSkipped ? 'opacity:.65;' : ''}">
+      <div class="elist-top">
+        <div class="elist-top-left">${newTagHtml}<span class="elist-store">${storeText}</span></div>
+        ${rightBadgeHtml}
+      </div>
+      <div class="elist-name">${escapeHtml(productLabel(item))}</div>
+      <div class="elist-sub">${subLineHtml}</div>
+      <div class="elist-bottom">
+        ${siteLinkHtml}
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${applyHtml}
+          ${menuHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// applyEndの締切が近い順ソート用キー。読み取れない場合は最後尾（Infinity）に回す＝推測しない。
+function deadlineSortKey(item){
+  const md = parseLooseMonthDay(item && item.applyEnd);
+  const d = md ? resolveScheduleDate(md) : null;
+  return d ? d.getTime() : Infinity;
+}
+
+// 検知が新しい順（appliedStatus===doneのものは後ろへ）。要確認・その他の新着・終了済み・見送り済みで共通利用。
+function sortByDoneThenDetected(list){
+  return [...list].sort((a,b)=>{
+    const aDone = a.appliedStatus === "done" ? 1 : 0;
+    const bDone = b.appliedStatus === "done" ? 1 : 0;
+    if(aDone !== bDone) return aDone - bDone;
+    return new Date(b.detectedAt||0) - new Date(a.detectedAt||0);
+  });
+}
+
+// 通常セクション（新着情報／受付中・日程あり／要確認／その他の新着）共通の描画。
+// 既定ではSECTION_PREVIEW_LIMIT件までを表示し、超える場合のみ「すべて見る」を出す。
+// accentClass："new"(緑)/"pending"(青)/"review"(オレンジ)/"other"(紫) のいずれか。見出し横のドットと件数バッジにのみ使う。
+function buildListSectionHtml(sectionKey, title, items, accentClass){
+  if(items.length === 0) return "";
+  const expanded = !!sectionExpanded[sectionKey];
+  const visible = expanded ? items : items.slice(0, SECTION_PREVIEW_LIMIT);
+  const rows = visible.map(item => buildEntryCardHtml(item, sectionKey)).join("");
+  const seeAllHtml = items.length > SECTION_PREVIEW_LIMIT
+    ? `<button class="elist-see-all" data-sec="${sectionKey}">${expanded ? "閉じる" : `すべて見る（${items.length}件）`}</button>`
+    : "";
+  return `
+    <div class="elist-section">
+      <div class="elist-section-head">
+        <div class="head-left"><span class="sec-dot ${accentClass}"></span><h2>${escapeHtml(title)}</h2><span class="count-badge ${accentClass}">${items.length}</span></div>
+        ${seeAllHtml}
+      </div>
+      <div class="elist-wrap">${rows}</div>
+    </div>
+  `;
+}
+
+// 終了済み・見送り済みセクション共通の描画（既存同様、既定は折りたたみ。グレーで存在感を最も弱くする）。
+function buildCollapsedSectionHtml(sectionKey, title, items, expandedFlag, toggleBtnId){
+  if(items.length === 0) return "";
+  const rows = expandedFlag ? items.map(item => buildEntryCardHtml(item, sectionKey)).join("") : "";
+  return `
+    <div class="elist-section">
+      <button id="${toggleBtnId}" class="elist-collapsed-head" data-sec="${sectionKey}">
+        <span class="head-left"><span class="sec-dot muted"></span>${escapeHtml(title)}</span>
+        <span class="count-badge muted">${items.length}</span>
+        <span class="chev-icon">${expandedFlag ? "閉じる ▲" : "▼"}</span>
+      </button>
+      ${expandedFlag ? `<div class="elist-wrap">${rows}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderEntries(){
+  const wrap = document.getElementById("entryList");
+  savedItems = loadSavedItems(); // 抽出ツール側での追加分も拾えるよう都度読み直す
+
+  if(savedItems.length === 0){
+    wrap.innerHTML = `<div style="padding:20px;font-size:13px;color:var(--sub);text-align:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);">まだ保存されたデータがありません。抽出ツールで候補を保存すると、ここに表示されます。</div>`;
+    updateStats();
+    return;
+  }
+
+  // ▼店舗フィルター（表示のみを絞り込み。savedItems・localStorageは変更しない）
+  const byStore = storeFilter === "all"
+    ? savedItems
+    : savedItems.filter(x => getStoreMeta(x).key === storeFilter);
+
+  // 見送り済みは折りたたみ表示にする（自動判定はせず、本人が「見送る」を押したものだけ）。
+  // 応募状態フィルターは見送り済みには適用しない（現在の折りたたみ表示をそのまま維持するため）。
+  const skipped = byStore.filter(x => x.appliedStatus === "skipped");
+  const nonSkippedAll = byStore.filter(x => x.appliedStatus !== "skipped");
+  const nonSkipped = statusFilter === "all"
+    ? nonSkippedAll
+    : nonSkippedAll.filter(x => statusFilter === "done" ? x.appliedStatus === "done" : x.appliedStatus !== "done");
+
+  // ▼終了済み判定（applyEnd・終了明示・事前抽選＋発売日経過のいずれかに該当する場合。
+  // 見送り済みと重なる場合は見送り側を優先＝skippedは既に除外済み）
+  const ended = nonSkipped.filter(x => isEndedItem(x));
+  const active = nonSkipped.filter(x => !isEndedItem(x));
+
+  // 2026-08-24 UI再設計②：6セクション構成（新着情報／受付中・日程あり／要確認／その他の新着／終了済み／見送り済み）に変更。
+  // 表示専用の分類・並び替えのみ行い、isEndedItem・getCaseConfidence・productResolved等の判定ロジックは一切変更しない。
+  // NEWは検知から24時間以内（isNewItem）かどうかだけで、confirmed/needs_review・productResolvedを問わず①へ最優先で入る
+  // （NEW期間中はproductResolved===falseの商品未特定案件も①に残り、NEW期間を過ぎたら④へ回る＝従来仕様を踏襲）。
+  const newActive = active.filter(x => isNewItem(x));
+  const restActive = active.filter(x => !isNewItem(x));
+  const pendingActive = restActive.filter(x => getCaseConfidence(x) === "confirmed");
+  const reviewActive = restActive.filter(x => getCaseConfidence(x) !== "confirmed" && x.productResolved !== false);
+  const otherNewActive = restActive.filter(x => x.productResolved === false);
+
+  const sortedNew = sortByDoneThenDetected(newActive);
+
+  // ②受付中・日程あり：applyEndがある案件は締切が近い順を先頭へ、applyEndが無い案件（applyStartのみ等）は後ろへ。
+  // applyEndが無いという理由だけでconfirmed→needs_reviewへ落とすことはしない（判定ロジックは変更しない）。
+  const pendingWithEnd = [...pendingActive.filter(x => x.applyEnd)].sort((a,b)=> deadlineSortKey(a) - deadlineSortKey(b));
+  const pendingWithoutEnd = sortByDoneThenDetected(pendingActive.filter(x => !x.applyEnd));
+  const sortedPending = pendingWithEnd.concat(pendingWithoutEnd);
+
+  const sortedReview = sortByDoneThenDetected(reviewActive);
+  const sortedOtherNew = sortByDoneThenDetected(otherNewActive);
+  const sortedEnded = [...ended].sort((a,b)=> new Date(b.detectedAt||0) - new Date(a.detectedAt||0));
+  const sortedSkipped = [...skipped].sort((a,b)=> new Date(b.detectedAt||0) - new Date(a.detectedAt||0));
+
+  const totalVisible = sortedNew.length + sortedPending.length + sortedReview.length + sortedOtherNew.length
+    + sortedEnded.length + sortedSkipped.length;
+
+  let html = "";
+  if(totalVisible === 0){
+    html += `<div style="padding:20px;font-size:13px;color:var(--sub);text-align:center;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;">条件に一致するデータはありません。</div>`;
+  } else {
+    html += buildListSectionHtml("newSec", "新着情報", sortedNew, "new");
+    html += buildListSectionHtml("pendingSec", "受付中・日程あり", sortedPending, "pending");
+    html += buildListSectionHtml("reviewSec", "要確認", sortedReview, "review");
+    html += buildListSectionHtml("otherSec", "その他の新着", sortedOtherNew, "other");
+    html += buildCollapsedSectionHtml("endedSec", "終了済み", sortedEnded, endedExpanded, "endedToggle");
+    html += buildCollapsedSectionHtml("skippedSec", "見送り済み", sortedSkipped, skippedExpanded, "skippedToggle");
+  }
+
+  wrap.innerHTML = html;
+
+  // ▼各セクションの「すべて見る／閉じる」
+  wrap.querySelectorAll(".elist-see-all").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      const sec = ev.currentTarget.dataset.sec;
+      sectionExpanded[sec] = !sectionExpanded[sec];
+      renderEntries();
+    });
+  });
+  const endedToggleBtn = document.getElementById("endedToggle");
+  if(endedToggleBtn){
+    endedToggleBtn.addEventListener("click", ()=>{
+      endedExpanded = !endedExpanded;
+      renderEntries();
+    });
+  }
+  const skippedToggleBtn = document.getElementById("skippedToggle");
+  if(skippedToggleBtn){
+    skippedToggleBtn.addEventListener("click", ()=>{
+      skippedExpanded = !skippedExpanded;
+      renderEntries();
+    });
+  }
+
+  // ▼「…」メニュー（見送る）の開閉。開いている他のメニューは閉じてから対象を開閉する
+  wrap.querySelectorAll(".menu-toggle-btn").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
+      const id = ev.currentTarget.dataset.id;
+      const menu = wrap.querySelector(`.elist-menu[data-menu-for="${id}"]`);
+      const wasOpen = menu && menu.classList.contains("open");
+      wrap.querySelectorAll(".elist-menu.open").forEach(m => m.classList.remove("open"));
+      if(menu && !wasOpen) menu.classList.add("open");
+    });
+  });
+
+  wrap.querySelectorAll(".toggle-btn").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      const id = ev.currentTarget.dataset.id;
+      const list = loadSavedItems();
+      const entry = list.find(x=>x.id===id);
+      if(!entry) return;
+      entry.appliedStatus = entry.appliedStatus === "done" ? "none" : "done";
+      saveSavedItems(list);
+      savedItems = list;
+      renderEntries();
+      renderUpcoming();
+      showToast(entry.appliedStatus==="done" ? "応募済みとして記録しました" : "未応募に戻しました");
+    });
+  });
+  wrap.querySelectorAll(".skip-btn").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      const id = ev.currentTarget.dataset.id;
+      const list = loadSavedItems();
+      const entry = list.find(x=>x.id===id);
+      if(!entry) return;
+      entry.appliedStatus = "skipped";
+      saveSavedItems(list);
+      savedItems = list;
+      renderEntries();
+      renderUpcoming();
+      showToast("見送りにしました");
+    });
+  });
+  wrap.querySelectorAll(".unskip-btn").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      const id = ev.currentTarget.dataset.id;
+      const list = loadSavedItems();
+      const entry = list.find(x=>x.id===id);
+      if(!entry) return;
+      entry.appliedStatus = "none";
+      saveSavedItems(list);
+      savedItems = list;
+      renderEntries();
+      renderUpcoming();
+      showToast("見送りを取り消しました");
+    });
+  });
+  wrap.querySelectorAll(".site-link-btn").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      const url = ev.currentTarget.dataset.url;
+      if(url) window.open(url, "_blank", "noopener");
+    });
+  });
+
+  updateStats();
+}
+
+// メニュー外クリックで開いている「…」メニューを閉じる（1回だけ登録すればよいのでrenderEntriesの外に置く）
+document.addEventListener("click", (ev)=>{
+  if(ev.target.closest(".elist-menu-wrap")) return;
+  document.querySelectorAll(".elist-menu.open").forEach(m => m.classList.remove("open"));
+});
+/* ▲ 保存済みカード描画 */
+
+/* ▼ カードジャンプ */
+function jumpToCard(id){
+  const el = document.getElementById("card-"+id);
+  if(!el) return;
+  el.scrollIntoView({behavior:"smooth", block:"center"});
+  el.classList.add("highlight");
+  setTimeout(()=> el.classList.remove("highlight"), 1400);
+}
+/* ▲ カードジャンプ */
+
+/* ▼ トースト */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove("show"), 1800);
+}
+/* ▲ トースト */
+
+/* ▼ 更新ボタン */
+// 2026-08-23⑤修正：従来はlocalStorageの再読み込み＋再描画のみで、Web上の最新情報を取得し直す
+// syncAllSites()を呼んでいなかった（表示上「更新」ボタンなのに実際は同期していなかった）。
+// 押した瞬間にまず保存済みデータで即座に再描画し（体感速度優先）、その後syncAllSites()で
+// 5サイトの最新同期を実行し、完了後は各サイトのUIラッパーが自動でrenderEntries()等を呼ぶ。
+document.getElementById("refreshBtn").addEventListener("click", (e)=>{
+  const icon = e.currentTarget.querySelector("svg");
+  icon.style.transform = "rotate(360deg)";
+  setTimeout(()=> icon.style.transform = "rotate(0deg)", 500);
+  savedItems = loadSavedItems();
+  renderEntries();
+  renderUpcoming();
+  showToast("最新の情報を取得しています…");
+  syncAllSites();
+});
+/* ▲ 更新ボタン */
+
+/* ▼ 店舗・応募状態フィルター */
+document.getElementById("storeFilterSel").addEventListener("change", (e)=>{
+  storeFilter = e.target.value;
+  sectionExpanded = { newSec:false, pendingSec:false, reviewSec:false, otherSec:false }; // フィルター変更時は各セクションの開閉をやり直す
+  renderEntries();
+});
+document.getElementById("statusFilterSel").addEventListener("change", (e)=>{
+  statusFilter = e.target.value;
+  sectionExpanded = { newSec:false, pendingSec:false, reviewSec:false, otherSec:false };
+  renderEntries();
+});
+/* ▲ 店舗・応募状態フィルター */
+
+/* ▼ カレンダーモーダル */
+const calOverlay = document.getElementById("calOverlay");
+const calGrid = document.getElementById("calGrid");
+const dow = ["日","月","火","水","木","金","土"];
+const nowForCal = new Date();
+// カレンダーは表示中の8月分のみ対応。今日が8月でなければ「今日」強調はしない
+const todayDay = (nowForCal.getFullYear()===2026 && nowForCal.getMonth()===7) ? nowForCal.getDate() : null;
+let selectedDay = todayDay || 1;
+let calendarData = { dots:{}, dayEvents:{} };
+
+// 保存データの日程系フィールド（開始/締切/発表/発売）から、8月分だけをカレンダー用に集計する
+function buildCalendarData(){
+  const dots = {};
+  const dayEvents = {};
+  const colorMap = { deadline:"red", announce:"purple", sale:"blue", start:"green" };
+  buildUpcoming().forEach(item=>{
+    if(!item.md || item.md.month !== 8) return;
+    const day = item.md.day;
+    const color = colorMap[item.type];
+    if(!dots[day]) dots[day] = [];
+    if(!dots[day].includes(color)) dots[day].push(color);
+    if(!dayEvents[day]) dayEvents[day] = [];
+    dayEvents[day].push({ type:item.type, shop:item.shop, name:item.name });
+  });
+  return { dots, dayEvents };
+}
+
+function renderCalendar(){
+  calGrid.innerHTML = "";
+  dow.forEach(d=>{
+    const el = document.createElement("div");
+    el.className = "cal-dow";
+    el.textContent = d;
+    calGrid.appendChild(el);
+  });
+  // 2026年8月は土曜始まり(8/1=土)。日曜起点で先頭に空白6コマ
+  const blanks = 6;
+  for(let i=0;i<blanks;i++){
+    calGrid.appendChild(document.createElement("div"));
+  }
+  for(let day=1; day<=31; day++){
+    const cell = document.createElement("div");
+    cell.className = "cal-day";
+    if(day === selectedDay) cell.classList.add("selected");
+    const colorMap = {red:"var(--red)", purple:"var(--purple)", blue:"var(--blue)", green:"var(--green)"};
+    let dotsHtml = "";
+    if(calendarData.dots[day]){
+      dotsHtml = `<div class="dots">${calendarData.dots[day].map(c=>`<span style="background:${colorMap[c]}"></span>`).join("")}</div>`;
+    }
+    if(day === todayDay){
+      cell.innerHTML = `<div class="cal-day today">${day}</div>`;
+      cell.querySelector(".today").addEventListener("click", ()=> selectDay(day));
+    } else {
+      cell.innerHTML = `${day}${dotsHtml}`;
+      cell.addEventListener("click", ()=> selectDay(day));
+    }
+    calGrid.appendChild(cell);
+  }
+}
+
+function selectDay(day){
+  selectedDay = day;
+  renderCalendar();
+  const label = document.getElementById("calSelectedLabel");
+  const evWrap = document.getElementById("calDayEvents");
+  const evs = calendarData.dayEvents[day];
+  label.textContent = `8月${day}日の予定`;
+  evWrap.innerHTML = "";
+  if(evs && evs.length){
+    evs.forEach(ev=>{
+      const t = typeMeta[ev.type];
+      const row = document.createElement("div");
+      row.className = "plan-item";
+      row.innerHTML = `
+        <div class="type-badge ${t.cls}" style="width:28px;height:28px;font-size:9px;">${t.label}</div>
+        <div class="u-body"><div class="u-shop">${escapeHtml(ev.shop)}</div><div class="u-name">${escapeHtml(ev.name)}</div></div>
+        <span class="chev">›</span>
+      `;
+      evWrap.appendChild(row);
+    });
+  } else {
+    evWrap.innerHTML = `<p style="font-size:12px;color:var(--sub);text-align:center;padding:10px 0;">この日の予定はありません</p>`;
+  }
+}
+
+function openCalendar(){
+  calendarData = buildCalendarData();
+  calOverlay.classList.add("open");
+  renderCalendar();
+  selectDay(selectedDay);
+}
+function closeCalendar(){
+  calOverlay.classList.remove("open");
+}
+document.getElementById("headerCalendar").addEventListener("click", openCalendar);
+document.getElementById("calClose").addEventListener("click", closeCalendar);
+calOverlay.addEventListener("click", (e)=>{ if(e.target===calOverlay) closeCalendar(); });
+document.getElementById("calPrev").addEventListener("click", ()=> showToast("月移動は今後実装予定です"));
+document.getElementById("calNext").addEventListener("click", ()=> showToast("月移動は今後実装予定です"));
+/* ▲ カレンダーモーダル */
+
+/* ▼ サイト管理・設定 プレースホルダー（歯車アイコンから開く。保存データ確認への導線もここに設置） */
+const placeholderOverlay = document.getElementById("placeholderOverlay");
+document.getElementById("headerSettings").addEventListener("click", ()=>{
+  placeholderOverlay.classList.add("open");
+});
+document.getElementById("placeholderClose").addEventListener("click", ()=>{
+  placeholderOverlay.classList.remove("open");
+});
+placeholderOverlay.addEventListener("click", (e)=>{ if(e.target===placeholderOverlay) placeholderOverlay.classList.remove("open"); });
+/* ▲ サイト管理・設定 プレースホルダー */
+
+/* ▼ 商品マスタ閲覧（PRODUCT_MASTERをそのまま表示するだけ。閲覧専用・追加編集削除なし） */
+const productMasterOverlay = document.getElementById("productMasterOverlay");
+
+// PRODUCT_MASTERの内容をそのまま一覧HTMLに変換して表示する（配列順・データそのものは一切変更しない）
+function renderProductMasterList(){
+  document.getElementById("productMasterCount").textContent = `登録商品 ${PRODUCT_MASTER.length}件`;
+
+  const html = PRODUCT_MASTER.map(p => {
+    const releaseDateHtml = p.releaseDate ? escapeHtml(p.releaseDate) : "未登録";
+    const imageHtml = p.imageUrl ? "登録あり" : "未登録";
+    const aliasesHtml = (p.aliases || [])
+      .map(a => `<span class="pm-alias-tag">${escapeHtml(a)}</span>`)
+      .join("");
+
+    return `
+      <div class="pm-item">
+        <div class="pm-id">${escapeHtml(p.id)}</div>
+        <div class="pm-name">${escapeHtml(p.name)}</div>
+        <div class="pm-meta">カテゴリ：${escapeHtml(p.category || "未登録")}</div>
+        <div class="pm-meta">発売日：${releaseDateHtml}</div>
+        <div class="pm-alias-label">aliases</div>
+        <div class="pm-alias-wrap">${aliasesHtml}</div>
+        <div class="pm-image">画像：${imageHtml}</div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("productMasterList").innerHTML = html;
+}
+
+document.getElementById("openProductMasterBtn").addEventListener("click", ()=>{
+  renderProductMasterList();
+  placeholderOverlay.classList.remove("open");
+  productMasterOverlay.classList.add("open");
+});
+document.getElementById("productMasterClose").addEventListener("click", ()=>{
+  productMasterOverlay.classList.remove("open");
+});
+productMasterOverlay.addEventListener("click", (e)=>{ if(e.target===productMasterOverlay) productMasterOverlay.classList.remove("open"); });
+/* ▲ 商品マスタ閲覧 */
+
+/* ▼ 保存データ確認（デバッグ）
+   localStorage（STORAGE_KEY="pokeca_saved_items"）の中身を、コンソールを開かずスマホ実機上でも
+   直接確認できるようにするための閲覧専用画面。編集・削除は一切行わない。
+   店舗フィルターのみ持ち、siteName / productName / productId / applyEnd / endedConfirmed /
+   sourcePosts件数 / appliedStatus / detectedAt を一覧表示する。 */
+const debugOverlay = document.getElementById("debugOverlay");
+
+function renderDebugList(){
+  const filterSiteId = document.getElementById("debugStoreFilterSel").value;
+  const all = loadSavedItems();
+  const list = filterSiteId === "all" ? all : all.filter(x => x.siteId === filterSiteId);
+
+  document.getElementById("debugCount").textContent = `保存件数 ${list.length}件（全${all.length}件中）`;
+
+  if(list.length === 0){
+    document.getElementById("debugList").innerHTML = `<p class="dbg-empty">該当するデータがありません</p>`;
+    return;
+  }
+
+  const html = list.map(item => {
+    const sourcePostsCount = Array.isArray(item.sourcePosts) ? item.sourcePosts.length : 0;
+    const endedHtml = item.endedConfirmed
+      ? `終了確認済み（${formatDetectedAt(item.endedConfirmedAt)}）`
+      : "未終了";
+    const appliedMeta = {
+      done: "応募済み", skipped: "見送り", none: "未応募"
+    };
+    return `
+      <div class="dbg-item">
+        <div class="dbg-site">${escapeHtml(item.siteName || item.siteId || "不明")}</div>
+        <div class="dbg-name">${escapeHtml(item.productName || "商品名未特定")}</div>
+        <div class="dbg-meta"><b>productId：</b>${escapeHtml(item.productId || "null（未特定）")}</div>
+        <div class="dbg-meta"><b>applyEnd：</b>${escapeHtml(item.applyEnd || "未取得")}</div>
+        <div class="dbg-meta"><b>endedConfirmed：</b>${escapeHtml(endedHtml)}</div>
+        <div class="dbg-meta"><b>sourcePosts：</b>${sourcePostsCount}件</div>
+        <div class="dbg-meta"><b>appliedStatus：</b>${escapeHtml(appliedMeta[item.appliedStatus] || item.appliedStatus || "不明")}</div>
+        <div class="dbg-meta"><b>detectedAt：</b>${escapeHtml(formatDetectedAt(item.detectedAt))}</div>
+      </div>
+    `;
+  }).join("");
+
+  document.getElementById("debugList").innerHTML = html;
+}
+
+document.getElementById("openDebugBtn").addEventListener("click", ()=>{
+  placeholderOverlay.classList.remove("open");
+  renderDebugList();
+  debugOverlay.classList.add("open");
+});
+document.getElementById("debugStoreFilterSel").addEventListener("change", renderDebugList);
+document.getElementById("debugClose").addEventListener("click", ()=>{
+  debugOverlay.classList.remove("open");
+});
+debugOverlay.addEventListener("click", (e)=>{ if(e.target===debugOverlay) debugOverlay.classList.remove("open"); });
+/* ▲ 保存データ確認（デバッグ） */
+
+/* ▼ サイト検索結果の自動同期（全サイト共通の入口。現状はJoshinのみ実装） */
+// 候補（案件単位。groupEnrichedJoshinCandidates等で統合済みのもの）を既存の保存データと照合し、
+// ・一致なし → 新規追加（appliedStatus: "none"）
+// ・一致あり → 自動取得系フィールドのみ更新（ユーザー操作系フィールドは触らない）
+// 2026-08-23追加（初版）→同日改訂：実データ検証で判明した問題を修正。
+// 当初はdetectSalePhase()の initial/reprint/unknown をそのまま比較していたが、
+// 実際の投稿は「新商品/初回」等の明示語をほぼ含まないため初回側は常にunknownになり、
+// 後日の再販投稿（"再販"の明示語あり→reprint）と比較しても「片方unknownだから分けない」で
+// 一致判定されてしまい、初回案件が再販投稿で上書きされる欠陥があった（実データテストで発覚）。
+// 対策：「本文に"再販"系の語が明示されているかどうか」という軽量な事実（推測ではなく文字列の有無）だけを
+// 比較する専用関数hasReprintWording()を使う。これなら初回側（語なし=false）と再販側（語あり=true）が
+// 常に食い違いとして検出でき、表示用のdetectSalePhase（unknownを許容する3値）とは役割を分離する。
+function hasReprintWording(item){
+  const text = [item && item.status, item && item.rawText].filter(Boolean).join(" ");
+  return /再販|再入荷|リストック/.test(text);
+}
+
+/* ▼ 案件同一性判定の全面改訂（2026-08-23 チャッピー仕様書②：スタートデッキ100ケースB検証結果を受けて）
+   従来はproductId+caseType一致（＋再販語・entryMethodの食い違いチェックのみ）で判定していたが、
+   「同じ店舗・同じ商品・同じentryMethodで、後日まったく新しい抽選/予約/販売イベントが発生する」
+   ケースを区別できず、終了済みの過去案件が新しい投稿でそのまま上書きされてしまう欠陥があった。
+   これはスタートデッキ100固有の問題ではなく、複数回販売イベントが起こりうる全商品に共通する
+   一般ルール側の設計ギャップだったため、判定ロジックそのものを証拠の強さに応じた段階的判定へ改訂する。
+   既存の5サイト抽出条件・除外条件・checkDuplicateAgainstSaved（投稿単位dedup、変更禁止関数）は無改修。
+
+   証拠の強さ（上から順に判定し、最初に決着した時点で確定）：
+   ①強い証拠：同一投稿由来（sourcePostsのpostIdが既存案件と重複）→ 常に同一案件
+   ②中程度の証拠a：日程情報（applyStart/applyEnd/resultAnnounce/approxDate）が両方で判明していて
+     食い違っていれば別案件、判明している項目が全て一致していれば同一案件
+   ③中程度の証拠b：再販語の有無・entryMethodの食い違い（従来のisSameSaleCase相当。日程が無くても効く）
+   ④弱い証拠：①②③のどれでも区別できない場合のみ、「既存案件が終了済みかどうか」×
+     「新しい投稿が新しい販売機会の開始を示しているかどうか」で判定する。
+     終了済みであっても、新しい投稿が抽選結果・当選発表・受付終了等の後続情報でしかない場合は
+     新規案件にはしない（既存の抽選結果センサー方針＝isResultAnnouncementOnly等を維持するため）。
+     「終了済みなら無条件で新規」にはしない点に注意。
+   ⑤上記いずれでも区別できない場合は、安全側に倒して従来通り同一案件の更新として扱う。
+   ========================================================================== */
+
+// 案件のsourcePostsからpostIdの配列を取り出す。
+// サイトによって配列要素の形状が違う（Joshin/furuichi/tcgpitはオブジェクト配列、pokemoncenterは文字列配列）ため両対応する。
+function extractSourcePostIds(item){
+  if(!item || !Array.isArray(item.sourcePosts)) return [];
+  return item.sourcePosts
+    .map(p => (p && typeof p === "object") ? p.postId : p)
+    .filter(Boolean);
+}
+
+// ①強い証拠：同一投稿由来かどうか（postIdが1つでも重複していれば同一投稿由来とみなす）
+function hasSharedSourcePost(existingEntry, candidate){
+  const a = extractSourcePostIds(existingEntry);
+  const b = extractSourcePostIds(candidate);
+  if(a.length === 0 || b.length === 0) return false;
+  return a.some(id => b.includes(id));
+}
+
+// ②中程度の証拠a：日程比較。
+// 両方で判明している（nullでない）項目だけを比較し、1つでも食い違っていれば別イベントと判定する。
+// 判明している項目が1つ以上あり、それらが全て一致していれば同一イベントと判定する。
+// 比較できる項目が1つも無い場合はnull（この軸では判定材料なし）を返す。
+const SCHEDULE_FIELDS_FOR_CASE_MATCH = ["applyStart", "applyEnd", "resultAnnounce", "approxDate"];
+function compareCaseSchedule(existingEntry, candidate){
+  let comparedAny = false;
+  for(const key of SCHEDULE_FIELDS_FOR_CASE_MATCH){
+    const a = existingEntry && existingEntry[key];
+    const b = candidate && candidate[key];
+    if(!a || !b) continue;
+    comparedAny = true;
+    if(a !== b) return "different";
+  }
+  return comparedAny ? "same" : null;
+}
+
+// ④弱い証拠：投稿本文が「新しい販売機会の開始」を示しているかどうか。
+// サイト固有の対象案件判定語彙（FURUICHI_CASE_KEYWORDS等）とは別に、本体側の共通判定として持つ。
+// 抽選結果・当選発表・受付終了等の後続・終了系の語だけの投稿はここには該当しない
+// （そもそもisResultAnnouncementOnlyでこの判定に来る前に除外される想定だが、保険として明示的に条件を絞る）。
+// 判定対象はrawText（投稿原文）のみとする。statusは各サイトモジュールがcaseTypeから
+// 生成する定型文（例：furuichiは常に「抽選受付中（候補）」）のため、実際の投稿内容と無関係に
+// 「抽選受付」等の語を含んでしまい、結果発表のみの投稿まで新しい販売機会と誤判定する原因になる。
+const NEW_SALE_OPPORTUNITY_WORDING = /抽選(受付|開始|販売)|応募(受付|開始)|予約(受付|開始|販売)|再販|再入荷|リストック|受付開始|販売開始/;
+function indicatesNewSaleOpportunity(candidate){
+  const text = (candidate && candidate.rawText) || "";
+  if(!text) return false;
+  return NEW_SALE_OPPORTUNITY_WORDING.test(text);
+}
+
+// 段階的証拠に基づく案件同一性判定。戻り値はtrue（同一案件＝更新）/false（別案件＝新規）。
+function isSameSaleCase(existingEntry, candidate){
+  // ①強い証拠：同一投稿由来なら、他の判定を待たず同一案件とする
+  if(hasSharedSourcePost(existingEntry, candidate)) return true;
+
+  // ②中程度の証拠a：日程が判明していれば、それを最優先の判断材料にする
+  const scheduleResult = compareCaseSchedule(existingEntry, candidate);
+  if(scheduleResult === "different") return false;
+  if(scheduleResult === "same") return true;
+
+  // ③中程度の証拠b：再販語の有無・entryMethodの食い違い（従来ロジックを維持）
+  if(hasReprintWording(existingEntry) !== hasReprintWording(candidate)) return false;
+  const methodA = detectEntryMethod(existingEntry), methodB = detectEntryMethod(candidate);
+  if(methodA !== "unknown" && methodB !== "unknown" && methodA !== methodB) return false;
+
+  // ④弱い証拠：日程・再販語・entryMethodのどれでも区別できない場合のみ、
+  // 「既存案件が終了済み」×「新しい投稿が新しい販売機会を示している」で新規案件と判定する。
+  if(isEndedItem(existingEntry) && indicatesNewSaleOpportunity(candidate)){
+    return false;
+  }
+
+  // ⑤いずれでも区別できない場合は、安全側に倒して同一案件の更新として扱う
+  return true;
+}
+/* ▲ 案件同一性判定の全面改訂 */
+
+// サイトごとの重複判定は各サイトの check*DuplicateAgainstSaved 関数に委ねる（候補となる既存案件を探す役割）。
+// 見つかった候補が本当に同一案件かどうかは、上記isSameSaleCase（段階的証拠判定）で最終決定する。
+// 単純なif分岐。将来サイトが増えたらここにマッピングを足す想定。
+function findDuplicateEntryForSite(siteId, candidate, savedList){
+  let dup = null;
+  if(siteId === "joshin") dup = checkCaseDuplicateAgainstSaved(candidate, savedList);
+  else if(siteId === "furuichi") dup = checkFuruichiDuplicateAgainstSaved(candidate, savedList);
+  else if(siteId === "tcgpit") dup = checkTcgpitDuplicateAgainstSaved(candidate, savedList);
+  else if(siteId === "aeon") dup = checkAeonDuplicateAgainstSaved(candidate, savedList);
+  else if(siteId === "pokemoncenter") dup = checkPokemonCenterDuplicateAgainstSaved(candidate, savedList);
+
+  // 段階的証拠判定の結果、別案件と判定された場合は新規追加させる（更新扱いにしない）。
+  if(dup && dup.entry && !isSameSaleCase(dup.entry, candidate)){
+    return null;
+  }
+  return dup;
+}
+
+// salePhase/entryMethodは他のautoFieldsと違い、「unknown」で確定済みの判定情報を上書きしないよう専用マージにする。
+// （新しい投稿の方が情報が薄くて再判定できなかった場合に、既に分かっていた情報を消してしまわないため）
+function mergeSaleCaseField(existingValue, candidateValue){
+  if(!existingValue || existingValue === "unknown") return candidateValue || "unknown";
+  if(!candidateValue || candidateValue === "unknown") return existingValue;
+  return candidateValue; // 両方判明している場合は最新の判定を採用
+}
+
+// 自動取得情報のみを既存データへ反映する。id・siteId・appliedStatus・detectedAt（初回検知日時）は変更しない。
+function applyAutoFieldsToExisting(existing, candidate){
+  const autoFields = [
+    "productId", "productName", "imageUrl", "caseType", "approxDate",
+    "status", "sourceUrl", "applyStart", "applyEnd", "resultAnnounce",
+    "releaseDate", "sourcePosts", "viaYahoo", "requiresOfficialCheck",
+    // 2026-08-23追加：sourcePostedAt（元投稿日時）。detectedAt（初回検知日時）とは別物で、
+    // こちらは自動取得のたびに最新の判定結果（同一案件内で最も古い投稿の日時）に更新してよい。
+    // 現時点では保存のみで、鮮度判定・終了判定には使用しない。
+    "sourcePostedAt",
+    // 2026-08-23④追加：productResolved・confidence。商品マスタ不一致で保存された「要確認案件」が、
+    // 後日products.json更新等でproductId解決できた場合に自動で確定表示へ切り替わるよう、
+    // 自動取得のたびに最新の判定結果で上書きしてよいフィールドとする。
+    "productResolved", "confidence"
+  ];
+  autoFields.forEach(key => {
+    if(candidate[key] !== undefined && candidate[key] !== null){
+      existing[key] = candidate[key];
+    }
+  });
+  // productResolvedがtrueに解決された場合、古いconfidence（"needs_review"）を残さないよう明示的に消す。
+  // autoFields.forEachはundefined/nullを書き込まない仕様のため、ここで別途処理する。
+  if(candidate.productResolved === true){
+    existing.confidence = undefined;
+  }
+  existing.salePhase = mergeSaleCaseField(existing.salePhase, candidate.salePhase);
+  existing.entryMethod = mergeSaleCaseField(existing.entryMethod, candidate.entryMethod);
+}
+
+// 抽選結果・当選発表のみの投稿は、新しい「これから参加できる案件」として保存しない。
+// 判定対象はrawText（投稿原文）のみとする。statusは各サイトモジュールがcaseTypeから
+// 生成する定型文（例：furuichi/Joshin/tcgpitは抽選案件だと常に「抽選受付中（候補）」等）のため、
+// statusを判定に含めると「抽選受付」の語を含む定型文経由でhasInviteWordingが常にtrueになり、
+// 結果発表のみの投稿もガードをすり抜けてしまう実物バグがあった（2026-08-23③実物コードでの検証で発覚。
+// furuichi・tcgpit・Joshinで再現、pokemoncenterのみ定型文の語彙が異なるため偶然すり抜けていなかった）。
+function isResultAnnouncementOnly(candidate){
+  const text = (candidate && candidate.rawText) || "";
+  if(!text) return false;
+  const hasResultWording = /当選(しました|者|発表|通知)|抽選結果|結果(を)?発表/.test(text);
+  if(!hasResultWording) return false;
+  const hasInviteWording = /抽選(受付|応募|開始)|応募(受付|開始)|予約(受付|開始)|再販(します|開始|決定)/.test(text);
+  return !hasInviteWording;
+}
+
+/* ▼ 抽選結果センサー：既存lottery案件の終了確定への反映（2026-08-23③）
+   従来はisResultAnnouncementOnlyで「新規販売案件として保存しない」ところまでしか実装されておらず、
+   結果投稿を検知しても保存済みの該当lottery案件を終了扱いにする処理が無かった。
+   そのため、applyEndを取得できなかった過去の抽選案件が通常一覧に残り続ける問題があった。
+   対象はentryMethod==="lottery"の既存案件のみ（reservation/directは対象外）。
+   同一店舗・同一productIdについて複数回抽選が発生しうるため、該当する全案件を無条件に終了させるのではなく、
+   「まだ終了していない中で最も古く登録された1件」だけを対象にする。
+   最も古い案件が既に（他の判定材料で）終了済みの場合は、そこで判定を止めて新しいラウンドには波及させない
+   （古い抽選A終了後に新しい抽選Bが始まっている場合、Aの結果投稿でBまで終了させないため）。
+   ========================================================================== */
+
+// siteId・productIdが一致し、entryMethod==="lottery"の既存案件のうち、
+// 最も古く登録された（detectedAtが最も古い）ものを1件だけ返す。無ければnull。
+// 終了済みかどうかはここでは見ない（呼び出し側で「最古の案件が既に終了済みなら何もしない」判定を行うため）。
+function findOldestLotteryCase(siteId, productId, savedList){
+  if(!siteId || !productId) return null;
+  const candidates = savedList.filter(s =>
+    s.siteId === siteId &&
+    s.productId === productId &&
+    s.entryMethod === "lottery"
+  );
+  if(candidates.length === 0) return null;
+  candidates.sort((a, b) => new Date(a.detectedAt || 0) - new Date(b.detectedAt || 0));
+  return candidates[0];
+}
+
+// 結果投稿（isResultAnnouncementOnlyでtrueと判定された候補）を、保存済みの該当lottery案件の
+// 終了確定情報として反映する。結果投稿自体はここでは保存しない（呼び出し側syncSiteResultsが
+// 従来通りreturnし、新規案件化しない）。応募済み・見送り等のユーザー操作フィールドは一切変更しない。
+function applyResultAnnouncementToExistingCase(candidate, savedList){
+  if(!candidate || !candidate.productId) return false;
+  const target = findOldestLotteryCase(candidate.siteId, candidate.productId, savedList);
+  if(!target) return false;
+  // 最古の案件が既に終了済みなら、それより新しいラウンドを誤って終了させないためここで止める
+  if(isEndedItem(target)) return false;
+  target.endedConfirmed = true;
+  target.endedReason = "result_announcement";
+  target.endedConfirmedAt = nowISO();
+  return true;
+}
+/* ▲ 抽選結果センサー */
+
+// 商品マスタ（PRODUCT_MASTER）を正式情報の一次ソースとして、案件データのproductName・releaseDateを上書きする。
+// 投稿本文からの略称や、サイト側取得ロジックが拾ってしまった値より商品マスタを優先することで、
+// 「30周年BOX」のような雑な表記のまま保存されるのを防ぐ（商品名の曖昧さ対策）。
+// 商品マスタにreleaseDateが未登録（null）の商品は、案件データ側の値をそのまま残す。
+// 応募開始・締切・当選発表・店舗ごとの販売開始などの案件固有日程はこの関数では一切触らない。
+function applyOfficialProductInfo(candidate){
+  if(!candidate || !candidate.productId) return candidate;
+  const product = PRODUCT_MASTER.find(p => p.id === candidate.productId);
+  if(!product) return candidate;
+  const result = { ...candidate };
+  if(product.name){
+    result.productName = product.name;
+  }
+  if(product.releaseDate){
+    result.releaseDate = product.releaseDate;
+  }
+  return result;
+}
+
+// siteId・candidates（案件単位の配列）を受け取り、localStorageへ同期する共通関数。
+// 戻り値 { added, updated } は呼び出し側のステータス表示用。
+function syncSiteResults(siteId, candidates){
+  const list = loadSavedItems();
+  let added = 0;
+  let updated = 0;
+
+  candidates.forEach(rawCandidate => {
+    // 抽選結果・当選発表のみの投稿は新規案件として保存しない。
+    // その代わり、保存済みの該当lottery案件（同一店舗・同一productId・entryMethod===lottery）が
+    // あれば終了確定情報を反映する（詳細はapplyResultAnnouncementToExistingCase参照）。
+    if(isResultAnnouncementOnly(rawCandidate)){
+      applyResultAnnouncementToExistingCase(rawCandidate, list);
+      return;
+    }
+
+    // 保存前に必ず商品マスタの正式名称・発売日で上書きし（重複判定・保存はこの後の候補データを使う）、
+    // salePhase・entryMethodも付与する（重複判定でこの2軸を使うため、判定より前に付与する）
+    const officialCandidate = applyOfficialProductInfo(rawCandidate);
+    const candidate = applyDerivedCaseFields(officialCandidate);
+    const dup = findDuplicateEntryForSite(siteId, candidate, list);
+    if(!dup){
+      list.push({
+        ...candidate,
+        id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+        appliedStatus: "none"
+      });
+      added++;
+    } else if(dup.entry){
+      applyAutoFieldsToExisting(dup.entry, candidate);
+      updated++;
+    }
+  });
+
+  saveSavedItems(list);
+  savedItems = list;
+  return { added, updated };
+}
+/* ▲ サイト検索結果の自動同期 */
+
+/* ▼ Joshin自動同期 制御 */
+const extractOverlay = document.getElementById("extractOverlay");
+
+/* ▼ 商品マスタ未判定投稿の一覧表示（デバッグ・マスタ追加候補確認用。折りたたみ表示で本番でも大量表示しない） */
+let joshinUnmatched = [];
+let joshinUnmatchedExpanded = false;
+let joshinNoiseCandidatesCount = 0; // 直近検索でノイズ判定された件数（デバッグ確認用）
+
+function renderJoshinUnmatchedList(list){
+  joshinUnmatched = list || [];
+  const wrap = document.getElementById("joshinUnmatchedWrap");
+  const toggle = document.getElementById("joshinUnmatchedToggle");
+  const area = document.getElementById("joshinUnmatchedList");
+
+  if(joshinUnmatched.length === 0){
+    wrap.style.display = "none";
+    area.innerHTML = "";
+    return;
+  }
+
+  wrap.style.display = "block";
+  toggle.textContent = joshinUnmatchedExpanded
+    ? "▲ 商品名を特定できない候補を閉じる"
+    : `▼ 商品名を特定できない候補を確認（${joshinUnmatched.length}件）`;
+
+  if(!joshinUnmatchedExpanded){
+    area.innerHTML = "";
+    return;
+  }
+
+  area.innerHTML = joshinUnmatched.map(u => `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:3px;">fallback抽出候補（参考情報・未採用）</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">${escapeHtml(u.guessedProductName || "(抽出できず)")}</div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:3px;">元の投稿本文</div>
+      <div style="font-size:12px;line-height:1.5;">${escapeHtml(u.rawText || "")}</div>
+    </div>
+  `).join("");
+}
+
+document.getElementById("joshinUnmatchedToggle").addEventListener("click", ()=>{
+  joshinUnmatchedExpanded = !joshinUnmatchedExpanded;
+  renderJoshinUnmatchedList(joshinUnmatched);
+});
+/* ▲ 商品マスタ未判定投稿の一覧表示 */
+
+// デバッグ用の件数サマリー表示（保存前提の候補カードは廃止。確認用のテキストのみ）
+function renderJoshinSyncDebugSummary(summary){
+  const area = document.getElementById("joshinExtractResults");
+  if(!summary){
+    area.innerHTML = "";
+    return;
+  }
+  area.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--sub);line-height:1.9;">
+      X投稿取得数：${summary.rawCount}件<br>
+      商品一致：${summary.matchedCount}件<br>
+      商品名未特定：${summary.unmatchedCount}件<br>
+      アフィ／SEO除外：${summary.spamCount}件<br>
+      同期対象の商品案件：${summary.caseCount}件
+    </div>
+  `;
+}
+
+// Yahoo!リアルタイム検索の取得はCloudflare Worker（pokeca-joshin-proxy）経由で行う。
+// ブラウザから直接Yahooへfetchするとブラウザの同一オリジン制約（CORS）で読み取れないため。
+// ↓デプロイ済みWorkerの実URLに差し替えること
+const JOSHIN_WORKER_URL = "https://pokeca-joshin-proxy.liliana944.workers.dev/joshin-search";
+
+// Joshin検索→同期の本体。起動時の自動同期・虫眼鏡の手動同期の両方からこの1つを呼ぶ（ロジックの分岐なし）。
+async function syncJoshinData(){
+  console.log("[Joshin Auto Sync] start");
+  const statusEl = document.getElementById("joshinExtractStatus");
+  if(statusEl){
+    statusEl.textContent = "Joshinを検索中…";
+    statusEl.style.color = "var(--sub)";
+  }
+  renderJoshinSyncDebugSummary(null);
+  renderJoshinUnmatchedList([]);
+
+  let data;
+  try {
+    const res = await fetch(JOSHIN_WORKER_URL);
+    data = await res.json();
+    if(!res.ok && !data.ok){
+      throw new Error("取得に失敗しました（サーバー応答エラー）");
+    }
+  } catch(e){
+    if(statusEl){
+      statusEl.textContent = "検索結果の取得に失敗しました: " + e.message;
+      statusEl.style.color = "var(--red)";
+    }
+    console.warn("[Joshin] 同期失敗:", e);
+    return;
+  }
+
+  if(data.errors && (data.errors.htmlA || data.errors.htmlB)){
+    // 片方だけ失敗した場合は続行しつつ状況を伝える
+    console.warn("Joshin取得一部失敗:", data.errors);
+  }
+
+  let rawCandidates;
+  let enriched;
+  try {
+    // 投稿単位の抽出・postIdバッチ内dedupは既存ロジック（extractYahooRealtime / extractJoshinFromTwoQueries）を無改変で使用
+    rawCandidates = extractJoshinFromTwoQueries(data.htmlA, data.htmlB);
+    // 商品マスタ照合はここで1回だけ行う。1投稿から複数商品を検出できるためflatMapで展開する。
+    enriched = rawCandidates.flatMap(enrichCandidateForGrouping);
+  } catch(e){
+    if(statusEl){
+      statusEl.textContent = "抽出中にエラーが発生しました: " + e.message;
+      statusEl.style.color = "var(--red)";
+    }
+    console.warn("[Joshin] 抽出エラー:", e);
+    return;
+  }
+
+  // 商品マスタに一致した投稿だけを通常の商品案件として統合する。未一致は同期対象にしない。
+  const matched = enriched.filter(e => e.productId);
+
+  // 商品マスタ未一致の投稿は、「商品候補（商品名特定不能）」と「ノイズ（雑談等）」に分類する。
+  // ノイズはUIに表示せず、件数のみデバッグ用に保持する。
+  const unmatchedRaw = enriched.filter(e => !e.productId);
+  const productCandidates = [];
+  const noiseCandidates = [];
+  unmatchedRaw.forEach(e => {
+    const item = {
+      rawText: e.rawText,
+      guessedProductName: e.guessedProductName,
+      postId: e.postId,
+      sourceUrl: e.sourceUrl,
+      authorName: e.authorName
+    };
+    if(classifyUnmatchedJoshinPost(e) === 'product_candidate'){
+      productCandidates.push(item);
+    } else {
+      noiseCandidates.push(item);
+    }
+  });
+  joshinNoiseCandidatesCount = noiseCandidates.length; // デバッグ確認用（consoleから参照可）
+
+  // 2026-08-23⑥修正：従来はproductCandidates（商品名特定不能だがポケカ告知らしい投稿）が
+  // renderJoshinUnmatchedList（デバッグ表示）にしか使われておらず、groupEnrichedJoshinCandidatesへは
+  // matchedのみが渡っていたため、Joshinの「要確認」候補が同期対象（syncSiteResults）まで
+  // 到達していなかった。unmatchedRawのうちclassifyUnmatchedJoshinPostが'product_candidate'と
+  // 判定したものを、guessedProductNameをフォールバック商品名として採用したうえでmatchedに合流させる。
+  // productId:nullのままgroupEnrichedJoshinCandidatesに渡すことで、そちら側で
+  // productResolved:false・confidence:"needs_review"が自動付与される（他サイトと同じ設計）。
+  const unmatchedQualified = unmatchedRaw
+    .filter(e => classifyUnmatchedJoshinPost(e) === 'product_candidate')
+    .map(e => ({ ...e, productName: e.guessedProductName || null }));
+
+  const joshinCases = groupEnrichedJoshinCandidates(matched.concat(unmatchedQualified));
+
+  console.log(`[Joshin] X投稿${rawCandidates.length}件 / 商品一致${matched.length}件 / 商品名未特定${productCandidates.length}件 / 除外${noiseCandidates.length}件 / 商品案件${joshinCases.length}件`);
+  if(joshinAffiliateSpamCount > 0){
+    console.log(`[Joshin] アフィSEO除外 ${joshinAffiliateSpamCount}件`);
+    console.table(joshinAffiliateSpamSamples.map(t => ({ rawText: t })));
+  }
+  const byProduct = {};
+  matched.forEach(e => { byProduct[e.productId] = (byProduct[e.productId] || 0) + 1; });
+  if(Object.keys(byProduct).length > 0){
+    console.table(Object.entries(byProduct).map(([id, count]) => ({
+      productId: id,
+      productName: (PRODUCT_MASTER.find(p => p.id === id) || {}).name,
+      matchedCandidates: count
+    })));
+  }
+  if(productCandidates.length > 0){
+    console.table(productCandidates);
+  }
+  renderJoshinUnmatchedList(productCandidates);
+
+  // ここで初めてlocalStorageへ反映。新規は追加、既存は自動取得系フィールドのみ更新。
+  // appliedStatus・見送り状態などユーザー操作系は syncSiteResults 内で一切触らない。
+  const { added, updated } = syncSiteResults("joshin", joshinCases);
+
+  renderJoshinSyncDebugSummary({
+    rawCount: rawCandidates.length,
+    matchedCount: matched.length,
+    unmatchedCount: productCandidates.length,
+    spamCount: joshinAffiliateSpamCount,
+    caseCount: joshinCases.length
+  });
+
+  if(statusEl){
+    statusEl.textContent = `同期完了　新規${added}件 / 更新${updated}件`;
+    statusEl.style.color = "var(--teal-dark)";
+  }
+
+  // 同期結果を本体一覧・ステータス・直近予定へ反映
+  renderEntries();
+  renderUpcoming();
+
+  // Joshin同期が正常完了した時点でのみ「最終同期」時刻を更新する（失敗時は更新しない＝常に最後の正常同期時刻を表示）。
+  const updatedTimeEl = document.getElementById("updatedTime");
+  if(updatedTimeEl){
+    const now = new Date();
+    updatedTimeEl.textContent =
+      `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  }
+
+  console.log("[Joshin Auto Sync] complete");
+}
+
+document.getElementById("extractClose").addEventListener("click", ()=>{
+  extractOverlay.classList.remove("open");
+});
+extractOverlay.addEventListener("click", (e)=>{ if(e.target===extractOverlay) extractOverlay.classList.remove("open"); });
+/* ▲ Joshin自動同期 制御 */
+
+/* ▼ ふるいち自動同期 UI反映ラッパー */
+// furuichi.js側のsyncFuruichiData()はDOMに触れない設計のため、
+// ステータス表示・件数サマリー・一覧再描画・最終同期時刻の更新はここで行う。
+function renderFuruichiSyncDebugSummary(summary){
+  const area = document.getElementById("furuichiExtractResults");
+  if(!area) return;
+  if(!summary){
+    area.innerHTML = "";
+    return;
+  }
+  area.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--sub);line-height:1.9;">
+      X投稿取得数：${summary.rawCount}件<br>
+      他TCG除外数：${summary.otherTcgExcludedCount}件<br>
+      ポケカ候補数：${summary.pokecaCount}件<br>
+      対象外(非案件)数：${summary.nonCaseExcludedCount}件<br>
+      対象案件候補数：${summary.caseCandidateCount}件<br>
+      商品一致数：${summary.matchedCount}件<br>
+      商品未判定数：${summary.unmatchedCount}件<br>
+      同期対象の商品案件：${summary.caseCount}件
+    </div>
+  `;
+}
+
+async function syncFuruichiUI(){
+  const statusEl = document.getElementById("furuichiExtractStatus");
+  if(statusEl){
+    statusEl.textContent = "ふるいちを検索中…";
+    statusEl.style.color = "var(--sub)";
+  }
+  renderFuruichiSyncDebugSummary(null);
+
+  const result = await syncFuruichiData();
+
+  if(result.error){
+    if(statusEl){
+      statusEl.textContent = "検索結果の取得に失敗しました: " + result.error;
+      statusEl.style.color = "var(--red)";
+    }
+    return;
+  }
+
+  renderFuruichiSyncDebugSummary(result);
+
+  if(statusEl){
+    statusEl.textContent = `同期完了　新規${result.added}件 / 更新${result.updated}件`;
+    statusEl.style.color = "var(--teal-dark)";
+  }
+
+  // 同期結果を本体一覧・ステータス・直近予定へ反映
+  renderEntries();
+  renderUpcoming();
+
+  // ふるいち同期が正常完了した時点でも「最終同期」時刻を更新する（Joshinと同じ考え方。失敗時は更新しない）。
+  const updatedTimeEl = document.getElementById("updatedTime");
+  if(updatedTimeEl){
+    const now = new Date();
+    updatedTimeEl.textContent =
+      `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  }
+}
+/* ▲ ふるいち自動同期 UI反映ラッパー */
+
+/* ▼ トレカピット自動同期 UI反映ラッパー */
+// tcgpit.js側のsyncTcgpitData()はDOMに触れない設計のため、
+// ステータス表示・件数サマリー・一覧再描画・最終同期時刻の更新はここで行う（ふるいちと同じ構成）。
+function renderTcgpitSyncDebugSummary(summary){
+  const area = document.getElementById("tcgpitExtractResults");
+  if(!area) return;
+  if(!summary){
+    area.innerHTML = "";
+    return;
+  }
+  area.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--sub);line-height:1.9;">
+      Yahoo投稿取得数：${summary.rawCount}件<br>
+      マイナス検索除外数：${summary.negativeExcludedCount}件<br>
+      他TCG除外数：${summary.otherTcgExcludedCount}件<br>
+      ポケカ候補数：${summary.pokecaCount}件<br>
+      通常パック販売除外数：${summary.normalPackExcludedCount}件<br>
+      対象外(非案件)数：${summary.nonCaseExcludedCount}件<br>
+      商品一致数：${summary.matchedCount}件<br>
+      商品未判定数：${summary.unmatchedCount}件<br>
+      同期対象の商品案件：${summary.caseCount}件
+    </div>
+  `;
+}
+
+async function syncTcgpitUI(){
+  const statusEl = document.getElementById("tcgpitExtractStatus");
+  if(statusEl){
+    statusEl.textContent = "トレカピットを検索中…";
+    statusEl.style.color = "var(--sub)";
+  }
+  renderTcgpitSyncDebugSummary(null);
+
+  const result = await syncTcgpitData();
+
+  if(result.error){
+    if(statusEl){
+      statusEl.textContent = "検索結果の取得に失敗しました: " + result.error;
+      statusEl.style.color = "var(--red)";
+    }
+    return;
+  }
+
+  renderTcgpitSyncDebugSummary(result);
+
+  if(statusEl){
+    statusEl.textContent = `同期完了　新規${result.added}件 / 更新${result.updated}件`;
+    statusEl.style.color = "var(--teal-dark)";
+  }
+
+  // 同期結果を本体一覧・ステータス・直近予定へ反映
+  renderEntries();
+  renderUpcoming();
+
+  // トレカピット同期が正常完了した時点でも「最終同期」時刻を更新する（失敗時は更新しない）。
+  const updatedTimeEl = document.getElementById("updatedTime");
+  if(updatedTimeEl){
+    const now = new Date();
+    updatedTimeEl.textContent =
+      `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  }
+}
+/* ▲ トレカピット自動同期 UI反映ラッパー */
+
+/* ▼ イオン自動同期 UI反映ラッパー */
+// aeon.js側のsyncAeonData()はDOMに触れない設計のため、
+// ステータス表示・件数サマリー・一覧再描画・最終同期時刻の更新はここで行う（ふるいち・トレカピットと同じ構成）。
+function renderAeonSyncDebugSummary(summary){
+  const area = document.getElementById("aeonExtractResults");
+  if(!area) return;
+  if(!summary){
+    area.innerHTML = "";
+    return;
+  }
+  area.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--sub);line-height:1.9;">
+      X投稿取得数：${summary.rawCount}件<br>
+      他TCG除外数：${summary.otherTcgExcludedCount}件<br>
+      ポケカ候補数：${summary.pokecaCount}件<br>
+      対象外(非案件)数：${summary.nonCaseExcludedCount}件<br>
+      対象案件候補数：${summary.caseCandidateCount}件<br>
+      商品一致数：${summary.matchedCount}件<br>
+      商品未判定数：${summary.unmatchedCount}件<br>
+      同期対象の商品案件：${summary.caseCount}件
+    </div>
+  `;
+}
+
+async function syncAeonUI(){
+  const statusEl = document.getElementById("aeonExtractStatus");
+  if(statusEl){
+    statusEl.textContent = "イオンを検索中…";
+    statusEl.style.color = "var(--sub)";
+  }
+  renderAeonSyncDebugSummary(null);
+
+  const result = await syncAeonData();
+
+  if(result.error){
+    if(statusEl){
+      statusEl.textContent = "検索結果の取得に失敗しました: " + result.error;
+      statusEl.style.color = "var(--red)";
+    }
+    return;
+  }
+
+  renderAeonSyncDebugSummary(result);
+
+  if(statusEl){
+    statusEl.textContent = `同期完了　新規${result.added}件 / 更新${result.updated}件`;
+    statusEl.style.color = "var(--teal-dark)";
+  }
+
+  // 同期結果を本体一覧・ステータス・直近予定へ反映
+  renderEntries();
+  renderUpcoming();
+
+  // イオン同期が正常完了した時点でも「最終同期」時刻を更新する（他サイトと同じ考え方。失敗時は更新しない）。
+  const updatedTimeEl = document.getElementById("updatedTime");
+  if(updatedTimeEl){
+    const now = new Date();
+    updatedTimeEl.textContent =
+      `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  }
+}
+/* ▲ イオン自動同期 UI反映ラッパー */
+
+/* ▼ ポケモンセンター自動同期 UI反映ラッパー */
+// pokemoncenter.js側のsyncPokemonCenterData()はDOMに触れない設計のため、
+// ステータス表示・件数サマリー・一覧再描画・最終同期時刻の更新はここで行う（他サイトと同じ構成）。
+function renderPokemonCenterSyncDebugSummary(summary){
+  const area = document.getElementById("pokemoncenterExtractResults");
+  if(!area) return;
+  if(!summary){
+    area.innerHTML = "";
+    return;
+  }
+  area.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--sub);line-height:1.9;">
+      X投稿取得数：${summary.rawCount}件<br>
+      ポケカ候補数：${summary.pokecaCount}件<br>
+      対象外投稿数：${summary.nonCaseExcludedCount}件<br>
+      抽選・予約案件候補数：${summary.caseCandidateCount}件<br>
+      商品一致数：${summary.matchedCount}件<br>
+      商品未判定数：${summary.unmatchedCount}件<br>
+      公式ニュースURL取得数：${summary.officialUrlCount}件<br>
+      同期対象の商品案件：${summary.caseCount}件
+    </div>
+  `;
+}
+
+async function syncPokemonCenterUI(){
+  const statusEl = document.getElementById("pokemoncenterExtractStatus");
+  if(statusEl){
+    statusEl.textContent = "ポケモンセンターを検索中…";
+    statusEl.style.color = "var(--sub)";
+  }
+  renderPokemonCenterSyncDebugSummary(null);
+
+  const result = await syncPokemonCenterData();
+
+  if(result.error){
+    if(statusEl){
+      statusEl.textContent = "検索結果の取得に失敗しました: " + result.error;
+      statusEl.style.color = "var(--red)";
+    }
+    return;
+  }
+
+  renderPokemonCenterSyncDebugSummary(result);
+
+  if(statusEl){
+    statusEl.textContent = `同期完了　新規${result.added}件 / 更新${result.updated}件`;
+    statusEl.style.color = "var(--teal-dark)";
+  }
+
+  // 同期結果を本体一覧・ステータス・直近予定へ反映
+  renderEntries();
+  renderUpcoming();
+
+  // ポケセン同期が正常完了した時点でも「最終同期」時刻を更新する（他サイトと同じ考え方。失敗時は更新しない）。
+  const updatedTimeEl = document.getElementById("updatedTime");
+  if(updatedTimeEl){
+    const now = new Date();
+    updatedTimeEl.textContent =
+      `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  }
+}
+/* ▲ ポケモンセンター自動同期 UI反映ラッパー */
+
+/* ▼ 全サイト統合同期（起動時自動同期・虫眼鏡の手動同期はこの1つを呼ぶ） */
+// Joshin・ふるいち・トレカピット・イオン・ポケモンセンターは互いに独立して実行する。1サイトの取得失敗が
+// 他サイトの同期まで止めないよう、Promise.allSettledでまとめて待つだけにする
+// （エラーハンドリング自体は各サイトのsync関数・UIラッパー内で完結させる）。
+async function syncAllSites(){
+  await Promise.allSettled([
+    syncJoshinData(),
+    syncFuruichiUI(),
+    syncTcgpitUI(),
+    syncAeonUI(),
+    syncPokemonCenterUI()
+  ]);
+}
+/* ▲ 全サイト統合同期 */
+
+document.getElementById("joshinExtractBtn").addEventListener("click", syncAllSites);
+
+// ヘッダーの虫眼鏡ボタンは役割重複のため削除済み。再同期処理自体（extractOverlay・syncAllSites）は
+// 今後のデバッグ・管理用途のためDOM・関数ともに維持する。
+
+// 起動時：まず既存データを即表示（商品マスタ読込を待たせない）
+renderUpcoming();
+renderEntries();
+
+// 商品マスタ（products.json）読込完了後にJoshin・ふるいちの自動同期を開始する。
+// 商品マスタが空のまま照合を走らせると全件未判定になるため、
+// 読込に失敗した場合は自動同期を実行しない（ページ自体は壊さず、保存済み一覧はそのまま表示する）。
+loadProductMaster()
+  .then(()=>{
+    syncAllSites();
+  })
+  .catch(e=>{
+    console.error("[ProductMaster] 商品マスタの読込に失敗しました:", e);
+    showToast("商品マスタの読込に失敗しました");
+    const statusEl = document.getElementById("joshinExtractStatus");
+    if(statusEl){
+      statusEl.textContent = "商品マスタの読込に失敗したため、Joshin自動同期を中止しました";
+      statusEl.style.color = "var(--red)";
+    }
+    const furuichiStatusEl = document.getElementById("furuichiExtractStatus");
+    if(furuichiStatusEl){
+      furuichiStatusEl.textContent = "商品マスタの読込に失敗したため、ふるいち自動同期を中止しました";
+      furuichiStatusEl.style.color = "var(--red)";
+    }
+    const tcgpitStatusEl = document.getElementById("tcgpitExtractStatus");
+    if(tcgpitStatusEl){
+      tcgpitStatusEl.textContent = "商品マスタの読込に失敗したため、トレカピット自動同期を中止しました";
+      tcgpitStatusEl.style.color = "var(--red)";
+    }
+    const aeonStatusEl = document.getElementById("aeonExtractStatus");
+    if(aeonStatusEl){
+      aeonStatusEl.textContent = "商品マスタの読込に失敗したため、イオン自動同期を中止しました";
+      aeonStatusEl.style.color = "var(--red)";
+    }
+    const pokemoncenterStatusEl = document.getElementById("pokemoncenterExtractStatus");
+    if(pokemoncenterStatusEl){
+      pokemoncenterStatusEl.textContent = "商品マスタの読込に失敗したため、ポケモンセンター自動同期を中止しました";
+      pokemoncenterStatusEl.style.color = "var(--red)";
+    }
+  });
+</script>
+</body>
+</html>

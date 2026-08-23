@@ -1,0 +1,135 @@
+[
+  {
+    "id": "PRODUCT-001",
+    "name": "ストームエメラルダ",
+    "aliases": [
+      "ストームエメラルダ",
+      "ストエメ"
+    ],
+    "category": "拡張パック",
+    "releaseDate": "2026-07-31",
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-002",
+    "name": "30th CELEBRATION",
+    "aliases": [
+      "30th CELEBRATION"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-003",
+    "name": "スターターセットex イーブイex",
+    "aliases": [
+      "スターターセットex イーブイex"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-004",
+    "name": "スターターセットex ニャオハ&マスカーニャex",
+    "aliases": [
+      "スターターセットex ニャオハ&マスカーニャex"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-005",
+    "name": "スターターセットex ゾロア&ゾロアークex",
+    "aliases": [
+      "スターターセットex ゾロア&ゾロアークex"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-006",
+    "name": "アビスアイ",
+    "aliases": [
+      "アビスアイ"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-007",
+    "name": "ブラックボルト",
+    "aliases": [
+      "ブラックボルト"
+    ],
+    "category": "拡張パック",
+    "releaseDate": "2025-06-06",
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-008",
+    "name": "ホワイトフレア",
+    "aliases": [
+      "ホワイトフレア"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-009",
+    "name": "スタートデッキ100 バトルコレクション",
+    "aliases": [
+      "スタートデッキ100 バトルコレクション"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-010",
+    "name": "30th CELEBRATION プレミアムデッキセット エーフィ・ブラッキー",
+    "aliases": [
+      "30th CELEBRATION プレミアムデッキセット エーフィ・ブラッキー"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-011",
+    "name": "30th CELEBRATION FUTURISTIC BOX",
+    "aliases": [
+      "30th CELEBRATION FUTURISTIC BOX"
+    ],
+    "category": "拡張パック",
+    "releaseDate": null,
+    "imageUrl": null,
+    "officialUrl": null
+  },
+  {
+    "id": "PRODUCT-012",
+    "name": "メガブレイブ",
+    "aliases": [
+      "メガブレイブ"
+    ],
+    "category": "拡張パック",
+    "releaseDate": "2025-08-01",
+    "imageUrl": null,
+    "officialUrl": null
+  }
+]
