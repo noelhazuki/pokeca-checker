@@ -7,17 +7,19 @@
 <title>ポケカ抽選チェッカー</title>
 <style>
   :root{
-    --bg:#f7f8fa;
+    --bg:#F5F6F8;
     --card:#ffffff;
-    --border:#e5e7eb;
-    --text:#111827;
-    --sub:#6b7280;
-    --link:#2563eb;
+    --border:#E2E5E9;
+    --text:#20242C;
+    --sub:#737985;
+    --link:#3F6F8F;
     --danger:#ef4444;
-    --accent-new:#16a34a;
-    --accent-pending:#4a90e2;
-    --accent-review:#c97a2e;
-    --accent-other:#9b6ede;
+    --accent-new:#25836F;
+    --accent-pending:#4776A8;
+    --accent-review:#B57A32;
+    --accent-other:#76679A;
+    --accent-muted:#858B94;
+    --apply-color:#4F5660;
     --teal:#0f9c8f;
     --teal-dark:#0b7d73;
     --orange:#f2994a;
@@ -170,6 +172,8 @@
   /* ▲ 直近の予定リスト */
 
   /* ▼ 保存済み一覧（2026-08-24 UI再設計：カード型→リスト型に変更。
+     2026-08-24④修正：低彩度パレットへ統一し、色はセクション単位（ドット・見出し・件数バッジ）に限定。
+     カード本文はほぼモノクロにし、状態の重複表示（要確認セクション内の「要確認」等）を削減。
      判定ロジック（isEndedItem・getCaseConfidence等）には触れず、表示専用のマークアップ／スタイルのみ変更） */
   .elist-section{margin-bottom:18px;}
   .elist-section-head{
@@ -179,7 +183,7 @@
   .elist-section-head .head-left{display:flex;align-items:center;gap:6px;min-width:0;}
   .elist-section-head h2{font-size:14px;margin:0;font-weight:700;color:var(--text);white-space:nowrap;}
   /* セクションの意味を色で示す細いアクセント（背景は塗らず、見出し横のドットと件数バッジだけに使う） */
-  .sec-dot{width:4px;height:14px;border-radius:2px;flex-shrink:0;background:var(--gray-text);}
+  .sec-dot{width:4px;height:14px;border-radius:2px;flex-shrink:0;background:var(--accent-muted);}
   .sec-dot.new{background:var(--accent-new);}
   .sec-dot.pending{background:var(--accent-pending);}
   .sec-dot.review{background:var(--accent-review);}
@@ -191,7 +195,7 @@
   .count-badge.pending{background:var(--accent-pending);}
   .count-badge.review{background:var(--accent-review);}
   .count-badge.other{background:var(--accent-other);}
-  .count-badge.muted{background:var(--gray-bg);color:var(--gray-text);}
+  .count-badge.muted{background:var(--accent-muted);}
   .elist-see-all{
     font-size:12px;color:var(--link);background:none;border:none;
     cursor:pointer;font-family:inherit;font-weight:600;
@@ -203,45 +207,43 @@
   }
   .elist-row{
     padding:12px 14px;border-bottom:1px solid var(--border);
-    border-left:3px solid transparent;
   }
   .elist-row:last-child{border-bottom:none;}
   .elist-row.is-ended{opacity:.6;filter:saturate(.7);}
+  /* ①メタ情報行：店舗名・検知時刻（左）＋必要な場合のみ最小限の状態補助テキスト（右） */
   .elist-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;}
   .elist-top-left{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;}
-  /* NEWは塗りつぶしバッジではなく、緑の文字だけの軽いラベルにする（「検知が新しい」という鮮度情報であり、状態ラベルではない） */
+  /* NEWは塗りつぶしバッジではなく、小さな色文字だけの軽いラベルにする（「検知が新しい」という鮮度情報であり、状態ラベルではない） */
   .elist-newtag{font-size:11px;font-weight:800;color:var(--accent-new);flex-shrink:0;}
   .elist-store{
     font-size:11px;color:var(--sub);white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis;
   }
-  .elist-status-badge{
-    font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;
-    white-space:nowrap;flex-shrink:0;
-  }
-  /* review＝「要確認」（商品は特定済み）はオレンジ、unresolved＝「要確認（商品未特定）」は紫（その他の新着と同系統） */
-  .elist-status-badge.review{background:var(--orange-bg);color:var(--accent-review);}
-  .elist-status-badge.unresolved{background:var(--purple-bg);color:var(--accent-other);}
-  .elist-status-badge.pending{background:var(--blue-bg);color:var(--accent-pending);}
-  .elist-status-badge.ended{background:var(--gray-bg);color:var(--gray-text);}
+  /* 状態補助は背景を塗ったピルではなく、小さな色文字のみ（カード本文をモノクロに保つため） */
+  .elist-status-text{font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;}
+  .elist-status-text.review{color:var(--accent-review);}
+  .elist-status-text.unresolved{color:var(--accent-other);}
+  /* ②商品情報：商品名を最も強く、種別・日程は補助文字色の短いデータ表現のみ */
   .elist-name{
     font-size:16px;font-weight:700;color:var(--text);margin-bottom:2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .elist-sub{font-size:12px;color:#4b5160;margin-bottom:8px;}
-  .elist-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .elist-sub{font-size:12px;color:var(--sub);margin-bottom:8px;}
+  .elist-sub:empty{display:none;margin:0;}
+  /* ③操作：横に散らさず左揃えでまとめる（公式を見る／応募済みにする／…メニュー） */
+  .elist-actions{display:flex;align-items:center;gap:16px;}
   .elist-sitelink{
     font-size:12px;color:var(--link);background:none;border:none;padding:0;
     cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:3px;flex-shrink:0;
   }
-  /* 2026-08-24③修正：応募済みにするは危険操作ではないため赤をやめ、落ち着いた濃いグレーのテキストリンクにする */
+  /* 2026-08-24④修正：応募済みにするは危険操作ではないため専用の落ち着いたグレーに統一（赤は危険・削除操作専用として温存） */
   .elist-apply{
-    font-size:12px;color:#4b5160;background:none;border:none;padding:0;
+    font-size:12px;color:var(--apply-color);background:none;border:none;padding:0;
     cursor:pointer;font-family:inherit;font-weight:600;
     display:flex;align-items:center;gap:3px;white-space:nowrap;
   }
   .elist-apply.done{color:var(--sub);}
-  .elist-menu-wrap{position:relative;flex-shrink:0;}
+  .elist-menu-wrap{position:relative;flex-shrink:0;margin-left:auto;}
   .elist-menu-btn{
     background:none;border:none;color:var(--sub);cursor:pointer;
     font-size:16px;padding:2px 6px;font-family:inherit;line-height:1;
@@ -1249,8 +1251,10 @@ function isNewItem(item){
   return (Date.now() - d.getTime()) <= 24 * 60 * 60 * 1000;
 }
 
-// 2026-08-24 UI再設計②：カード型→リスト型（1件=1行、上段/中段/下段/操作エリア）に全面変更。
-// 2026-08-24 UI再設計③：セクションごとに色分けし、要確認セクション内での「要確認」ラベル重複を省略。
+// 2026-08-24 UI再設計②：カード型→リスト型（1件=1行、①メタ情報／②商品情報／③操作の3ブロック）に全面変更。
+// 2026-08-24 UI再設計③④：セクションごとに低彩度の色を割り当て、カード本文はほぼモノクロにする。
+// 要確認セクション内の「要確認」重複表示・冗長な説明文（「日程の詳細は未取得です」等）を削減し、
+// 短いデータ表現（抽選／発売 8/1／締切 8/31）に統一する。
 // 検索・同期・保存・重複判定・終了判定（isEndedItem／getCaseConfidence等）には一切手を入れず、
 // この描画関数の中でだけ「どの情報をどの順で並べるか・どう色分けするか」という表示上の整理を行う。
 // sectionKeyは呼び出し元セクション（"reviewSec"等）を渡すための表示専用の引数（判定には使わない）。
@@ -1263,26 +1267,22 @@ function buildEntryCardHtml(item, sectionKey){
   const displayStatus = getDisplayStatusMeta(item); // confirmed / needs_review / ended（既存ロジックそのまま）
   const storeMeta = getStoreMeta(item);
 
-  // ▼ 上段右側：状態ラベル。
-  // ・要確認セクション（reviewSec）内では、親見出しの「要確認」とラベルが重複するため省略する
+  // ▼ ①メタ情報行の右側：状態補助テキスト（背景ピルではなく小さな色文字のみ。カード本文をモノクロに保つ）。
+  // ・終了済み／見送り済みは折りたたみセクション自体がグレーで状態を示すため、カード側では出さない
+  // ・要確認セクション（reviewSec）内では、親見出しの「要確認」と重複するため省略する
   //   （reviewSec内の案件はproductResolved!==falseのみ＝常にplain「要確認」になるため、常に省略でよい）
-  // ・「要確認（商品未特定）」は商品未特定という追加情報を持つため、どのセクションでも省略しない（紫系で表示）
-  let rightBadgeHtml = "";
-  if(isSkipped){
-    rightBadgeHtml = `<span class="elist-status-badge ended">見送り</span>`;
-  } else if(isEnded){
-    rightBadgeHtml = `<span class="elist-status-badge ended">終了</span>`;
-  } else if(displayStatus.type === "needs_review"){
+  // ・「商品未特定」は商品未特定という追加情報を持つため、どのセクションでも省略しない（短いラベルのみ表示）
+  let rightSupplementHtml = "";
+  if(!isSkipped && !isEnded && displayStatus.type === "needs_review"){
     if(item.productResolved === false){
-      rightBadgeHtml = `<span class="elist-status-badge unresolved">${escapeHtml(displayStatus.label)}</span>`;
+      rightSupplementHtml = `<span class="elist-status-text unresolved">商品未特定</span>`;
     } else if(sectionKey !== "reviewSec"){
-      rightBadgeHtml = `<span class="elist-status-badge review">${escapeHtml(displayStatus.label)}</span>`;
+      rightSupplementHtml = `<span class="elist-status-text review">要確認</span>`;
     }
-  } else if(displayStatus.type === "confirmed" && item.applyEnd){
-    rightBadgeHtml = `<span class="elist-status-badge pending">受付中</span>`;
   }
 
-  // ▼ 下段：種別（抽選／予約／販売 等）＋ 日程（値がある項目だけを並べる。「不明」は出さない）。
+  // ▼ ②商品情報の下段：種別（抽選／予約／販売 等）＋ 日程（値がある項目だけ、短いデータ表現で並べる）。
+  // 冗長な説明文（「日程の詳細は未取得です」等）は出さない：日程が無ければ、およその時期があれば1行だけ、無ければ何も出さない。
   // 締切だけは「今参加できる可能性が高い」情報として青系アクセントで軽く強調する（商品名より強くはしない）。
   const releaseDateRaw = getDisplayReleaseDateRaw(item);
   const releaseDateShort = formatShortDateLabel(releaseDateRaw);
@@ -1298,15 +1298,19 @@ function buildEntryCardHtml(item, sectionKey){
         ? `${f.label} <span style="color:var(--accent-pending);font-weight:700;">${escapeHtml(f.value)}</span>`
         : `${f.label} ${escapeHtml(f.value)}`
       ).join("　")
-    : (item.approxDate ? `およその時期 ${escapeHtml(item.approxDate)}` : "日程の詳細は未取得です");
-  const caseLabel = getSaleCaseLabel(item) || (item.status ? item.status : null);
+    : (item.approxDate ? `およその時期 ${escapeHtml(item.approxDate)}` : "");
+  // 生のstatus文は長い説明文になりがちなので、短い単語相当（10文字以内）の場合のみ軽く補完に使う。
+  // それ以外はgetSaleCaseLabel（短い定型ラベル）のみに絞り、冗長な文章は表示しない。
+  const caseLabel = getSaleCaseLabel(item)
+    || (item.status && item.status.length <= 10 ? item.status : null);
   const subLineHtml = [caseLabel ? escapeHtml(caseLabel) : "", dateFieldsHtml].filter(Boolean).join("　|　");
 
-  // ▼ 上段左側：NEWタグ（緑の文字のみ。塗りつぶしバッジには戻さない）＋ 店舗名・検知時刻
+  // ▼ ①メタ情報行の左側：NEWタグ（小さな色文字のみ。塗りつぶしバッジには戻さない）＋ 店舗名・検知時刻
   const newTagHtml = isNew ? `<span class="elist-newtag">NEW</span>` : "";
   const storeText = `${escapeHtml(storeMeta.label)}・${formatDetectedAt(item.detectedAt)}`;
 
-  // ▼ 操作エリア：公式を見る（テキストリンク）／応募済みにする（濃いグレーのテキスト+チェック。危険操作色は使わない）／見送るは「…」メニュー内
+  // ▼ ③操作：公式を見る／応募済みにする（濃いグレー。危険操作色は使わない）／見送るは「…」メニュー内。
+  // 横に散らさず左揃えでひとまとまりにし、「…」メニューだけ右端に寄せる。
   const siteLinkHtml = `<button class="elist-sitelink site-link-btn" data-url="${item.sourceUrl ? escapeHtml(item.sourceUrl) : ''}" ${!item.sourceUrl ? 'disabled style="opacity:.4;"' : ''}>公式を見る<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg></button>`;
 
   const applyHtml = isSkipped
@@ -1316,7 +1320,7 @@ function buildEntryCardHtml(item, sectionKey){
       </button>`;
 
   const menuHtml = isSkipped
-    ? `<button class="elist-menu-btn unskip-btn" data-id="${item.id}" title="見送りを取り消す">…</button>`
+    ? `<button class="elist-menu-btn unskip-btn" data-id="${item.id}" title="見送りを取り消す" style="margin-left:auto;">…</button>`
     : `<div class="elist-menu-wrap">
         <button class="elist-menu-btn menu-toggle-btn" data-id="${item.id}">…</button>
         <div class="elist-menu" data-menu-for="${item.id}">
@@ -1328,16 +1332,14 @@ function buildEntryCardHtml(item, sectionKey){
     <div class="elist-row${isEnded ? ' is-ended' : ''}" id="card-${item.id}" style="${isSkipped ? 'opacity:.65;' : ''}">
       <div class="elist-top">
         <div class="elist-top-left">${newTagHtml}<span class="elist-store">${storeText}</span></div>
-        ${rightBadgeHtml}
+        ${rightSupplementHtml}
       </div>
       <div class="elist-name">${escapeHtml(productLabel(item))}</div>
       <div class="elist-sub">${subLineHtml}</div>
-      <div class="elist-bottom">
+      <div class="elist-actions">
         ${siteLinkHtml}
-        <div style="display:flex;align-items:center;gap:10px;">
-          ${applyHtml}
-          ${menuHtml}
-        </div>
+        ${applyHtml}
+        ${menuHtml}
       </div>
     </div>
   `;
