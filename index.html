@@ -251,6 +251,12 @@
     color:var(--accent-new);background:rgba(30,166,114,0.10);
     border-radius:7px;padding:4px 8px;font-weight:700;cursor:default;
   }
+  /* 2026-08-24⑦修正：見送る／見送りを取り消すを一覧上に表出。公式を見る・応募済みにするより弱い見た目にするため--subを使用し、危険色は使わない */
+  .elist-skip,.elist-unskip{
+    font-size:12px;color:var(--sub);background:none;border:none;padding:0;
+    cursor:pointer;font-family:inherit;font-weight:600;
+    display:flex;align-items:center;gap:3px;white-space:nowrap;
+  }
   .elist-menu-wrap{position:relative;flex-shrink:0;margin-left:auto;}
   .elist-menu-btn{
     background:none;border:none;color:var(--sub);cursor:pointer;
@@ -1320,8 +1326,8 @@ function buildEntryCardHtml(item, sectionKey){
   const newTagHtml = isNew ? `<span class="elist-newtag">NEW</span>` : "";
   const storeText = `${escapeHtml(storeMeta.label)}・${formatDetectedAt(item.detectedAt)}`;
 
-  // ▼ ③操作：公式を見る／応募済みにする（濃いグレー。危険操作色は使わない）／見送るは「…」メニュー内。
-  // 横に散らさず左揃えでひとまとまりにし、「…」メニューだけ右端に寄せる。
+  // ▼ ③操作：公式を見る／応募済みにする（or ✓応募済み）／見送る（or 見送りを取り消す）を横並びで表出。
+  // 「…」メニューは応募済み案件の「応募済みを取り消す」のみに縮小し、他に補助操作が無い場合はボタンごと非表示にする。
   const siteLinkHtml = `<button class="elist-sitelink site-link-btn" data-url="${item.sourceUrl ? escapeHtml(item.sourceUrl) : ''}" ${!item.sourceUrl ? 'disabled style="opacity:.4;"' : ''}>公式を見る<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M7 7h10v10"/></svg></button>`;
 
   const applyHtml = isSkipped
@@ -1330,19 +1336,22 @@ function buildEntryCardHtml(item, sectionKey){
       ? `<span class="elist-apply done">✓ 応募済み</span>`
       : `<button class="elist-apply toggle-btn" data-id="${item.id}">応募済みにする</button>`;
 
+  const skipToggleHtml = isSkipped
+    ? `<button class="elist-unskip unskip-btn" data-id="${item.id}">見送りを取り消す</button>`
+    : `<button class="elist-skip skip-btn" data-id="${item.id}">見送る</button>`;
+
   const unapplyMenuItemHtml = isDone
     ? `<button class="unapply-btn" data-id="${item.id}">応募済みを取り消す</button>`
     : "";
 
-  const menuHtml = isSkipped
-    ? `<button class="elist-menu-btn unskip-btn" data-id="${item.id}" title="見送りを取り消す" style="margin-left:auto;">…</button>`
-    : `<div class="elist-menu-wrap">
+  const menuHtml = (!isSkipped && unapplyMenuItemHtml)
+    ? `<div class="elist-menu-wrap">
         <button class="elist-menu-btn menu-toggle-btn" data-id="${item.id}">…</button>
         <div class="elist-menu" data-menu-for="${item.id}">
           ${unapplyMenuItemHtml}
-          <button class="skip-btn" data-id="${item.id}">見送る</button>
         </div>
-      </div>`;
+      </div>`
+    : "";
 
   return `
     <div class="elist-row${isEnded ? ' is-ended' : ''}" id="card-${item.id}" style="${isSkipped ? 'opacity:.65;' : ''}">
@@ -1355,6 +1364,7 @@ function buildEntryCardHtml(item, sectionKey){
       <div class="elist-actions">
         ${siteLinkHtml}
         ${applyHtml}
+        ${skipToggleHtml}
         ${menuHtml}
       </div>
     </div>
