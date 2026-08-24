@@ -242,7 +242,11 @@
     cursor:pointer;font-family:inherit;font-weight:600;
     display:flex;align-items:center;gap:3px;white-space:nowrap;
   }
-  .elist-apply.done{color:var(--sub);}
+  /* 2026-08-24⑤修正：応募済み状態は未応募と明確に見分けられるよう、薄いグリーン背景＋角丸の状態表示に変更（トグル操作ではなく現在状態の表示） */
+  .elist-apply.done{
+    color:var(--accent-new);background:rgba(37,131,111,0.10);
+    border-radius:7px;padding:4px 8px;font-weight:700;cursor:default;
+  }
   .elist-menu-wrap{position:relative;flex-shrink:0;margin-left:auto;}
   .elist-menu-btn{
     background:none;border:none;color:var(--sub);cursor:pointer;
@@ -1315,15 +1319,20 @@ function buildEntryCardHtml(item, sectionKey){
 
   const applyHtml = isSkipped
     ? ""
-    : `<button class="elist-apply toggle-btn${isDone ? ' done' : ''}" data-id="${item.id}">
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>${isDone ? "応募済み" : "応募済みにする"}
-      </button>`;
+    : isDone
+      ? `<span class="elist-apply done">✓ 応募済み</span>`
+      : `<button class="elist-apply toggle-btn" data-id="${item.id}">応募済みにする</button>`;
+
+  const unapplyMenuItemHtml = isDone
+    ? `<button class="unapply-btn" data-id="${item.id}">応募済みを取り消す</button>`
+    : "";
 
   const menuHtml = isSkipped
     ? `<button class="elist-menu-btn unskip-btn" data-id="${item.id}" title="見送りを取り消す" style="margin-left:auto;">…</button>`
     : `<div class="elist-menu-wrap">
         <button class="elist-menu-btn menu-toggle-btn" data-id="${item.id}">…</button>
         <div class="elist-menu" data-menu-for="${item.id}">
+          ${unapplyMenuItemHtml}
           <button class="skip-btn" data-id="${item.id}">見送る</button>
         </div>
       </div>`;
@@ -1509,12 +1518,26 @@ function renderEntries(){
       const list = loadSavedItems();
       const entry = list.find(x=>x.id===id);
       if(!entry) return;
-      entry.appliedStatus = entry.appliedStatus === "done" ? "none" : "done";
+      entry.appliedStatus = "done";
       saveSavedItems(list);
       savedItems = list;
       renderEntries();
       renderUpcoming();
-      showToast(entry.appliedStatus==="done" ? "応募済みとして記録しました" : "未応募に戻しました");
+      showToast("応募済みとして記録しました");
+    });
+  });
+  wrap.querySelectorAll(".unapply-btn").forEach(btn=>{
+    btn.addEventListener("click", (ev)=>{
+      const id = ev.currentTarget.dataset.id;
+      const list = loadSavedItems();
+      const entry = list.find(x=>x.id===id);
+      if(!entry) return;
+      entry.appliedStatus = "none";
+      saveSavedItems(list);
+      savedItems = list;
+      renderEntries();
+      renderUpcoming();
+      showToast("未応募に戻しました");
     });
   });
   wrap.querySelectorAll(".skip-btn").forEach(btn=>{
